@@ -9,8 +9,8 @@ import { setLogLevel } from 'firebase/app';
 // Firebase Configuratie
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
     ? JSON.parse(__firebase_config) 
-    : { // Fallback voor lokale ontwikkeling (vervang met uw daadwerkelijke dev keys)
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
+    : { // Fallback voor lokale ontwikkeling (vervang met uw daadwerkelijke dev keys indien nodig)
+           apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN",
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET",
@@ -24,7 +24,9 @@ const db = getFirestore(app);
 const storage = getStorage(app); 
 setLogLevel('debug'); 
 
-// BELANGRIJK: Vervang dit met de daadwerkelijke UID van uw admin account in Firebase Authentication
+// --- BELANGRIJK: ADMIN UID ---
+// Vervang "YOUR_ACTUAL_ADMIN_UID_HERE" met de daadwerkelijke UID van uw admin account
+// U vindt de UID in de Firebase Console > Authentication > Users tab.
 const THE_ADMIN_UID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; 
 
 // Kleurenpalet
@@ -518,104 +520,6 @@ const DashboardNavbar = ({ onToggleTheme, currentTheme, themeColors, onNavigateT
     );
 };
 
-// --- TradeList Component (verplaatst naar vóór DashboardView) ---
-const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId }) => {
-    const [expandedTradeId, setExpandedTradeId] = useState(null);
-
-    const getAccountNameById = (accountId) => {
-        const account = accounts.find(acc => acc.id === accountId);
-        return account ? account.name : 'N/A';
-    };
-    
-    const getMoodForTradeDisplay = (moodValue) => {
-        if (moodValue >= 1 && moodValue <= 5) {
-            return (
-                <div className="flex items-center space-x-1">
-                    <MoodSmiley moodValue={moodValue} themeColors={themeColors} size={16} />
-                </div>
-            );
-        }
-        return <div className="flex items-center space-x-1"><Meh className={themeColors.mood[2]} size={16} /></div>;
-    };
-
-
-    const filteredTrades = selectedAccountFilterId === 'cumulative' 
-        ? trades 
-        : trades.filter(trade => trade.accountId === selectedAccountFilterId);
-
-    if (filteredTrades.length === 0) {
-        return <p className={`${themeColors.subtleText} text-center py-4`}>Geen trades gevonden voor deze selectie.</p>;
-    }
-
-    return (
-        <div className={`${themeColors.cardBg} p-4 sm:p-6 rounded-xl shadow-lg mt-8`}>
-            <h3 className={`text-lg sm:text-xl font-semibold mb-4 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Trades Bekijken</h3>
-            <ul className="space-y-3">
-                {filteredTrades.map(trade => (
-                    <li key={trade.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3">
-                            <div className="flex items-center flex-grow mb-2 sm:mb-0 flex-wrap">
-                                <span className="mr-2 mb-1 sm:mb-0">{getMoodForTradeDisplay(trade.mood)}</span>
-                                <span className={`font-semibold mr-2 ${trade.pnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>
-                                    {trade.pnl >=0 ? '+' : ''}{trade.pnl.toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}
-                                </span>
-                                <span className={`text-xs sm:text-sm ${themeColors.cardText} mr-2`}>{getAccountNameById(trade.accountId)}</span>
-                                <span className={`text-xs ${themeColors.subtleText} mr-2`}>{trade.date && typeof trade.date.toDate === 'function' ? trade.date.toDate().toLocaleDateString('nl-NL') : 'N/A'}</span>
-                                {trade.tradeTime && <span className={`text-xs ${themeColors.subtleText}`}>({trade.tradeTime})</span>}
-                            </div>
-                            <button 
-                                onClick={() => setExpandedTradeId(expandedTradeId === trade.id ? null : trade.id)}
-                                className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded text-xs sm:text-sm inline-flex items-center self-start sm:self-center mt-2 sm:mt-0`}
-                            >
-                                Details {expandedTradeId === trade.id ? <ChevronUp size={16} className="ml-1"/> : <ChevronDown size={16} className="ml-1"/>}
-                            </button>
-                        </div>
-                        {expandedTradeId === trade.id && (
-                            <div className={`p-3 border-t ${themeColors.borderColor} space-y-3 text-xs sm:text-sm`}>
-                                {trade.reasoning && (
-                                    <div>
-                                        <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Onderbouwing:</h4>
-                                        <p className={`whitespace-pre-wrap ${themeColors.subtleText}`}>{trade.reasoning}</p>
-                                    </div>
-                                )}
-                                 <div>
-                                    <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Stemming:</h4>
-                                    <p className={`${themeColors.subtleText} italic`}>{moodLabels[trade.mood] || "Geen specifieke stemming genoteerd."}</p>
-                                </div>
-                                {trade.imageUrl && (
-                                    <div className="my-2">
-                                        <p className={`font-medium ${themeColors.cardText} mb-1`}>Grafiek:</p>
-                                        <img 
-                                            src={trade.imageUrl} 
-                                            alt={`Trade chart ${trade.pair}`} 
-                                            className="rounded-md max-w-full h-auto sm:max-w-md mx-auto shadow-md border ${themeColors.borderColor}"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                    </div>
-                                )}
-                                 {trade.imageUrlOptional && (
-                                    <div className="my-2">
-                                        <p className={`font-medium ${themeColors.cardText} mb-1`}>Order Bewijs:</p>
-                                        <img 
-                                            src={trade.imageUrlOptional} 
-                                            alt={`Order bewijs ${trade.pair}`} 
-                                            className="rounded-md max-w-full h-auto sm:max-w-xs mx-auto shadow-md border ${themeColors.borderColor}"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                    </div>
-                                )}
-                                {(!trade.imageUrl && !trade.imageUrlOptional && !trade.reasoning) && (
-                                    <p className={`${themeColors.subtleText}`}>Geen extra details beschikbaar voor deze trade.</p>
-                                )}
-                            </div>
-                        )}
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-};
-
 const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors, onNavigateToTimeline, onNavigateToContact, userId, isAdmin, onAdminLogout, navigateTo }) => { 
     const [kpiValues, setKpiValues] = useState({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 }); 
     const [accounts, setAccounts] = useState([]); 
@@ -758,32 +662,5 @@ const Footer = ({themeColors}) => {
 };
 
 
-const App = () => { const [currentView, setCurrentView] = useState('landing'); const [currentUser, setCurrentUser] = useState(null); const [isAuthReady, setIsAuthReady] = useState(false); const [theme, setTheme] = useState('light'); const [isAdmin, setIsAdmin] = useState(false); const currentThemeColors = themes[theme]; const navigateTo = (view) => { const pageContainer = document.getElementById('page-container'); if (pageContainer) { pageContainer.style.opacity = '0'; setTimeout(() => { setCurrentView(view); window.scrollTo(0, 0); const innerContainer = document.querySelector('.journey-container, .flex-grow.overflow-y-auto'); if(innerContainer) innerContainer.scrollTop = 0; setTimeout(() => { pageContainer.style.opacity = '1'; }, 50); }, 250); } else { setCurrentView(view); window.scrollTo(0,0); } }; useEffect(() => { const authListener = onAuthStateChanged(auth, async (user) => { console.log("Auth state changed, user:", user); if (user) {
-    setCurrentUser(user);
-    const userDocRef = doc(db, `/artifacts/${appId}/users/${user.uid}/profile`, 'info');
-    const userDocSnap = await getDoc(userDocRef);
-    if (!userDocSnap.exists()) {
-        try {
-            console.log("Nieuw profiel aanmaken voor UID:", user.uid, "isAdmin wordt: false (default)");
-            await setDoc(userDocRef, {
-                email: user.email || 'anoniem',
-                name: user.displayName || 'Jeremy Mlynarczyk',
-                createdAt: Timestamp.now(),
-                themePreference: 'light',
-                isAdmin: false  // standaard false
-            });
-            setTheme('light');
-            setIsAdmin(false);
-        } catch (error) {
-            console.error("Fout bij aanmaken gebruikersprofiel:", error);
-        }
-    } else {
-        const profileData = userDocSnap.data();
-        setTheme(profileData?.themePreference || 'light');
-        const newAdminStatus = profileData?.isAdmin;  // alleen Firestore bepaalt!
-        console.log("Bestaand profiel voor UID:", user.uid, "Firestore isAdmin:", profileData?.isAdmin);
-        setIsAdmin(newAdminStatus);
-    }
-}
-} catch (error) { console.error("Fout bij aanmaken gebruikersprofiel:", error); } } else { const profileData = userDocSnap.data(); setTheme(profileData?.themePreference || 'light'); const newAdminStatus = profileData?.isAdmin && user.uid === THE_ADMIN_UID; console.log("Bestaand profiel voor UID:", user.uid, "Firestore isAdmin:", profileData?.isAdmin, "Berekende isAdmin:", newAdminStatus); setIsAdmin(newAdminStatus); } } else { if (typeof __initial_auth_token === 'undefined' || !__initial_auth_token) { console.log("Geen gebruiker, probeer anoniem in te loggen."); signInAnonymously(auth).catch(error => console.error("Anoniem inloggen mislukt:", error)); } setCurrentUser(null); setIsAdmin(false); console.log("Gebruiker uitgelogd, isAdmin gereset naar false."); } setIsAuthReady(true); }); const attemptCustomSignIn = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { try { console.log("Probeert custom token sign-in..."); await signInWithCustomToken(auth, __initial_auth_token); console.log("Custom token sign-in succesvol."); } catch (error) { console.error("Custom token inloggen mislukt, probeer anoniem:", error); signInAnonymously(auth).catch(anonError => console.error("Anoniem inloggen ook mislukt na custom token fail:", anonError)); } } }; if (!auth.currentUser) { attemptCustomSignIn(); } return () => authListener(); }, []); const toggleTheme = async () => { const newTheme = theme === 'dark' ? 'light' : 'dark'; setTheme(newTheme); if (currentUser) { try { const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/profile`, 'info'); await updateDoc(userDocRef, { themePreference: newTheme }); } catch (error) { console.error("Fout bij updaten thema voorkeur:", error); } } }; const handleSuccessfulAdminLogin = async (firebaseUser) => { console.log("handleSuccessfulAdminLogin aangeroepen voor UID:", firebaseUser?.uid); if (firebaseUser && firebaseUser.uid === THE_ADMIN_UID) { console.log("Admin UID MATCH. Firebase UID:", firebaseUser.uid, "THE_ADMIN_UID:", THE_ADMIN_UID); const userDocRef = doc(db, `/artifacts/${appId}/users/${firebaseUser.uid}/profile`, 'info'); try { const userDocSnap = await getDoc(userDocRef); if (userDocSnap.exists()) { await updateDoc(userDocRef, { isAdmin: true }); console.log("Firestore profiel geüpdatet, isAdmin: true"); } else { await setDoc(userDocRef, { email: firebaseUser.email || 'anoniem', name: firebaseUser.displayName || 'Admin JMarkets', createdAt: Timestamp.now(), themePreference: theme, isAdmin: true }); console.log("Nieuw Firestore profiel aangemaakt, isAdmin: true"); } setIsAdmin(true); setCurrentUser(firebaseUser); navigateTo('dashboard'); console.log("Admin status geactiveerd en genavigeerd naar dashboard voor user:", firebaseUser.uid); } catch (error) { console.error("Fout bij instellen admin status na login:", error); } } else if (firebaseUser) { console.warn("Admin login MISLUKT: UID mismatch. Ingelogde UID:", firebaseUser.uid, "Verwachte Admin UID:", THE_ADMIN_UID); await firebaseSignOut(auth); setIsAdmin(false); setCurrentUser(null); } else { console.error("handleSuccessfulAdminLogin aangeroepen zonder geldig firebaseUser object"); } }; const handleAdminLogout = async () => { console.log("Admin logout gestart..."); if (currentUser) { const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/profile`, 'info'); try { await updateDoc(userDocRef, { isAdmin: false }); console.log("Firestore isAdmin status gezet op false voor UID:", currentUser.uid); } catch (error) { console.error("Fout bij deactiveren admin status in DB:", error); } } try { await firebaseSignOut(auth); console.log("Firebase signOut succesvol."); setIsAdmin(false); setCurrentUser(null); navigateTo('landing'); console.log("Admin status gedeactiveerd en genavigeerd naar landing."); } catch (error) { console.error("Fout bij Firebase signOut:", error); } }; const pageProps = { theme, toggleTheme, themeColors: currentThemeColors, isAdmin }; let viewComponent; if (currentView === 'landing') { viewComponent = <LandingPage onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} onNavigateToAdminLogin={() => navigateTo('adminLogin')} {...pageProps} />; } else if (currentView === 'adminLogin') { viewComponent = <AdminLoginPage onSuccessfulAdminLogin={handleSuccessfulAdminLogin} onBackToLanding={() => navigateTo('landing')} themeColors={currentThemeColors} />; } else if (currentView === 'timeline') { viewComponent = <MyJourneyTimelinePage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToContact={() => navigateTo('contact')} {...pageProps} />; } else if (currentView === 'contact') { viewComponent = <ContactPage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} {...pageProps} />; } else if (currentView === 'dashboard') { viewComponent = <DashboardView onBackToLanding={() => navigateTo('landing')} currentTheme={theme} toggleTheme={toggleTheme} themeColors={currentThemeColors} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} userId={currentUser?.uid} isAdmin={isAdmin} onAdminLogout={handleAdminLogout} navigateTo={navigateTo}/>; } else { viewComponent = <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Ongeldige weergave.</p></div>; } if (!isAuthReady) { return <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Authenticatie laden...</p></div>; } return ( <div className="flex flex-col min-h-screen"> <div id="page-container" className="flex-grow transition-opacity duration-200 ease-in-out" style={{opacity: 1}}> {viewComponent} </div> <FloatingCallButton themeColors={currentThemeColors} /> <Footer themeColors={currentThemeColors} /> </div> );};
+const App = () => { const [currentView, setCurrentView] = useState('landing'); const [currentUser, setCurrentUser] = useState(null); const [isAuthReady, setIsAuthReady] = useState(false); const [theme, setTheme] = useState('light'); const [isAdmin, setIsAdmin] = useState(false); const currentThemeColors = themes[theme]; const navigateTo = (view) => { const pageContainer = document.getElementById('page-container'); if (pageContainer) { pageContainer.style.opacity = '0'; setTimeout(() => { setCurrentView(view); window.scrollTo(0, 0); const innerContainer = document.querySelector('.journey-container, .flex-grow.overflow-y-auto'); if(innerContainer) innerContainer.scrollTop = 0; setTimeout(() => { pageContainer.style.opacity = '1'; }, 50); }, 250); } else { setCurrentView(view); window.scrollTo(0,0); } }; useEffect(() => { const authListener = onAuthStateChanged(auth, async (user) => { console.log("Auth state changed, user:", user); if (user) { setCurrentUser(user); const userDocRef = doc(db, `/artifacts/${appId}/users/${user.uid}/profile`, 'info'); const userDocSnap = await getDoc(userDocRef); if (!userDocSnap.exists()) { try { const newAdminStatus = user.uid === THE_ADMIN_UID; console.log("Nieuw profiel aanmaken voor UID:", user.uid, "isAdmin wordt:", newAdminStatus); await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Jeremy Mlynarczyk', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: newAdminStatus }); setTheme('light'); setIsAdmin(newAdminStatus); } catch (error) { console.error("Fout bij aanmaken gebruikersprofiel:", error); } } else { const profileData = userDocSnap.data(); setTheme(profileData?.themePreference || 'light'); const newAdminStatus = profileData?.isAdmin && user.uid === THE_ADMIN_UID; console.log("Bestaand profiel voor UID:", user.uid, "Firestore isAdmin:", profileData?.isAdmin, "Berekende isAdmin:", newAdminStatus); setIsAdmin(newAdminStatus); } } else { if (typeof __initial_auth_token === 'undefined' || !__initial_auth_token) { console.log("Geen gebruiker, probeer anoniem in te loggen."); signInAnonymously(auth).catch(error => console.error("Anoniem inloggen mislukt:", error)); } setCurrentUser(null); setIsAdmin(false); console.log("Gebruiker uitgelogd, isAdmin gereset naar false."); } setIsAuthReady(true); }); const attemptCustomSignIn = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { try { console.log("Probeert custom token sign-in..."); await signInWithCustomToken(auth, __initial_auth_token); console.log("Custom token sign-in succesvol."); } catch (error) { console.error("Custom token inloggen mislukt, probeer anoniem:", error); signInAnonymously(auth).catch(anonError => console.error("Anoniem inloggen ook mislukt na custom token fail:", anonError)); } } }; if (!auth.currentUser) { attemptCustomSignIn(); } return () => authListener(); }, []); const toggleTheme = async () => { const newTheme = theme === 'dark' ? 'light' : 'dark'; setTheme(newTheme); if (currentUser) { try { const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/profile`, 'info'); await updateDoc(userDocRef, { themePreference: newTheme }); } catch (error) { console.error("Fout bij updaten thema voorkeur:", error); } } }; const handleSuccessfulAdminLogin = async (firebaseUser) => { console.log("handleSuccessfulAdminLogin aangeroepen voor UID:", firebaseUser?.uid); if (firebaseUser && firebaseUser.uid === THE_ADMIN_UID) { console.log("Admin UID MATCH. Firebase UID:", firebaseUser.uid, "THE_ADMIN_UID:", THE_ADMIN_UID); const userDocRef = doc(db, `/artifacts/${appId}/users/${firebaseUser.uid}/profile`, 'info'); try { const userDocSnap = await getDoc(userDocRef); if (userDocSnap.exists()) { await updateDoc(userDocRef, { isAdmin: true }); console.log("Firestore profiel geüpdatet, isAdmin: true"); } else { await setDoc(userDocRef, { email: firebaseUser.email || 'anoniem', name: firebaseUser.displayName || 'Admin JMarkets', createdAt: Timestamp.now(), themePreference: theme, isAdmin: true }); console.log("Nieuw Firestore profiel aangemaakt, isAdmin: true"); } setIsAdmin(true); setCurrentUser(firebaseUser); navigateTo('dashboard'); console.log("Admin status geactiveerd en genavigeerd naar dashboard voor user:", firebaseUser.uid); } catch (error) { console.error("Fout bij instellen admin status na login:", error); } } else if (firebaseUser) { console.warn("Admin login MISLUKT: UID mismatch. Ingelogde UID:", firebaseUser.uid, "Verwachte Admin UID:", THE_ADMIN_UID); await firebaseSignOut(auth); setIsAdmin(false); setCurrentUser(null); } else { console.error("handleSuccessfulAdminLogin aangeroepen zonder geldig firebaseUser object"); } }; const handleAdminLogout = async () => { console.log("Admin logout gestart..."); if (currentUser) { const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/profile`, 'info'); try { await updateDoc(userDocRef, { isAdmin: false }); console.log("Firestore isAdmin status gezet op false voor UID:", currentUser.uid); } catch (error) { console.error("Fout bij deactiveren admin status in DB:", error); } } try { await firebaseSignOut(auth); console.log("Firebase signOut succesvol."); setIsAdmin(false); setCurrentUser(null); navigateTo('landing'); console.log("Admin status gedeactiveerd en genavigeerd naar landing."); } catch (error) { console.error("Fout bij Firebase signOut:", error); } }; const pageProps = { theme, toggleTheme, themeColors: currentThemeColors, isAdmin }; let viewComponent; if (currentView === 'landing') { viewComponent = <LandingPage onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} onNavigateToAdminLogin={() => navigateTo('adminLogin')} {...pageProps} />; } else if (currentView === 'adminLogin') { viewComponent = <AdminLoginPage onSuccessfulAdminLogin={handleSuccessfulAdminLogin} onBackToLanding={() => navigateTo('landing')} themeColors={currentThemeColors} />; } else if (currentView === 'timeline') { viewComponent = <MyJourneyTimelinePage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToContact={() => navigateTo('contact')} {...pageProps} />; } else if (currentView === 'contact') { viewComponent = <ContactPage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} {...pageProps} />; } else if (currentView === 'dashboard') { viewComponent = <DashboardView onBackToLanding={() => navigateTo('landing')} currentTheme={theme} toggleTheme={toggleTheme} themeColors={currentThemeColors} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} userId={currentUser?.uid} isAdmin={isAdmin} onAdminLogout={handleAdminLogout} navigateTo={navigateTo}/>; } else { viewComponent = <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Ongeldige weergave.</p></div>; } if (!isAuthReady) { return <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Authenticatie laden...</p></div>; } return ( <div className="flex flex-col min-h-screen"> <div id="page-container" className="flex-grow transition-opacity duration-200 ease-in-out" style={{opacity: 1}}> {viewComponent} </div> <FloatingCallButton themeColors={currentThemeColors} /> <Footer themeColors={currentThemeColors} /> </div> );};
 export default App;
