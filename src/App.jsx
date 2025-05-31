@@ -27,7 +27,7 @@ setLogLevel('debug');
 // --- BELANGRIJK: ADMIN UID & PIN ---
 // THE_ADMIN_UID wordt gebruikt om de isAdmin vlag in Firestore te beheren,
 // zelfs als de login nu puur via PIN gaat.
-const THE_ADMIN_UID = "YOUR_ACTUAL_ADMIN_UID_HERE"; // VERVANG DIT!
+const THE_ADMIN_UID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; // VERVANG DIT!
 const THE_ADMIN_PIN = "86878"; // Hardgecodeerde PIN - NIET VEILIG VOOR PRODUCTIE
 
 // Kleurenpalet
