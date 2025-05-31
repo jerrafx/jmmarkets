@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Briefcase, User, LayoutDashboard, Eye, ChevronDown, Menu, X, DollarSign, Percent, BarChart2, TrendingUp, Settings, PlusCircle, Edit3, Trash2, Image as ImageIcon, LogIn, Moon, Sun, Send, MapPin, Phone, Mail, Home, CalendarDays, Rocket, Target, Award, Building, CheckCircle, XCircle, BookOpen, ShieldCheck, LogOut, Key, ChevronUp, Brain, Youtube as YoutubeIcon, ArrowDownRight, Copyright, Layers, ListChecks, Smile, Meh, Frown, AlertTriangle, UploadCloud, Zap, TrendingDown, Lightbulb, Scale, FileImage, ExternalLink, Handshake, Clock } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'; 
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth'; 
 import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; 
 import { setLogLevel } from 'firebase/app';
@@ -10,12 +10,12 @@ import { setLogLevel } from 'firebase/app';
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
     ? JSON.parse(__firebase_config) 
     : { // Fallback voor lokale ontwikkeling (vervang met uw daadwerkelijke dev keys indien nodig)
-           apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "YOUR_APP_ID"
+        apiKey: "YOUR_DEV_API_KEY", 
+        authDomain: "YOUR_DEV_AUTH_DOMAIN",
+        projectId: "YOUR_DEV_PROJECT_ID",
+        storageBucket: "YOUR_DEV_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_DEV_MESSAGING_SENDER_ID",
+        appId: "YOUR_DEV_APP_ID"
       };
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'jmarkets-journal-app-prod'; 
 const app = initializeApp(firebaseConfig);
@@ -24,10 +24,11 @@ const db = getFirestore(app);
 const storage = getStorage(app); 
 setLogLevel('debug'); 
 
-// --- BELANGRIJK: ADMIN UID ---
-// Vervang "YOUR_ACTUAL_ADMIN_UID_HERE" met de daadwerkelijke UID van uw admin account
-// U vindt de UID in de Firebase Console > Authentication > Users tab.
-const THE_ADMIN_UID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; 
+// --- BELANGRIJK: ADMIN UID & PIN ---
+// THE_ADMIN_UID wordt gebruikt om de isAdmin vlag in Firestore te beheren,
+// zelfs als de login nu puur via PIN gaat.
+const THE_ADMIN_UID = "YOUR_ACTUAL_ADMIN_UID_HERE"; // VERVANG DIT!
+const THE_ADMIN_PIN = "86878"; // Hardgecodeerde PIN - NIET VEILIG VOOR PRODUCTIE
 
 // Kleurenpalet
 const themes = { 
@@ -114,7 +115,7 @@ const TypingEffect = ({ textParts, speed = 150, themeColors, onTypingComplete })
           }
         </span>
       ))}
-      <span className={`border-r-2 ${themeColors.primaryAccent.replace('text-', 'border-')} animate-pulse ml-px`}></span>
+      <span className={`border-r-4 ${themeColors.primaryAccent.replace('text-', 'border-')} animate-pulse ml-1`}></span>
     </span>
   );
 };
@@ -520,6 +521,103 @@ const DashboardNavbar = ({ onToggleTheme, currentTheme, themeColors, onNavigateT
     );
 };
 
+const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId }) => {
+    const [expandedTradeId, setExpandedTradeId] = useState(null);
+
+    const getAccountNameById = (accountId) => {
+        const account = accounts.find(acc => acc.id === accountId);
+        return account ? account.name : 'N/A';
+    };
+    
+    const getMoodForTradeDisplay = (moodValue) => {
+        if (moodValue >= 1 && moodValue <= 5) {
+            return (
+                <div className="flex items-center space-x-1">
+                    <MoodSmiley moodValue={moodValue} themeColors={themeColors} size={16} />
+                </div>
+            );
+        }
+        return <div className="flex items-center space-x-1"><Meh className={themeColors.mood[2]} size={16} /></div>;
+    };
+
+
+    const filteredTrades = selectedAccountFilterId === 'cumulative' 
+        ? trades 
+        : trades.filter(trade => trade.accountId === selectedAccountFilterId);
+
+    if (filteredTrades.length === 0) {
+        return <p className={`${themeColors.subtleText} text-center py-4`}>Geen trades gevonden voor deze selectie.</p>;
+    }
+
+    return (
+        <div className={`${themeColors.cardBg} p-4 sm:p-6 rounded-xl shadow-lg mt-8`}>
+            <h3 className={`text-lg sm:text-xl font-semibold mb-4 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Trades Bekijken</h3>
+            <ul className="space-y-3">
+                {filteredTrades.map(trade => (
+                    <li key={trade.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3">
+                            <div className="flex items-center flex-grow mb-2 sm:mb-0 flex-wrap">
+                                <span className="mr-2 mb-1 sm:mb-0">{getMoodForTradeDisplay(trade.mood)}</span>
+                                <span className={`font-semibold mr-2 ${trade.pnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>
+                                    {trade.pnl >=0 ? '+' : ''}{trade.pnl.toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}
+                                </span>
+                                <span className={`text-xs sm:text-sm ${themeColors.cardText} mr-2`}>{getAccountNameById(trade.accountId)}</span>
+                                <span className={`text-xs ${themeColors.subtleText} mr-2`}>{trade.date && typeof trade.date.toDate === 'function' ? trade.date.toDate().toLocaleDateString('nl-NL') : 'N/A'}</span>
+                                {trade.tradeTime && <span className={`text-xs ${themeColors.subtleText}`}>({trade.tradeTime})</span>}
+                            </div>
+                            <button 
+                                onClick={() => setExpandedTradeId(expandedTradeId === trade.id ? null : trade.id)}
+                                className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded text-xs sm:text-sm inline-flex items-center self-start sm:self-center mt-2 sm:mt-0`}
+                            >
+                                Details {expandedTradeId === trade.id ? <ChevronUp size={16} className="ml-1"/> : <ChevronDown size={16} className="ml-1"/>}
+                            </button>
+                        </div>
+                        {expandedTradeId === trade.id && (
+                            <div className={`p-3 border-t ${themeColors.borderColor} space-y-3 text-xs sm:text-sm`}>
+                                {trade.reasoning && (
+                                    <div>
+                                        <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Onderbouwing:</h4>
+                                        <p className={`whitespace-pre-wrap ${themeColors.subtleText}`}>{trade.reasoning}</p>
+                                    </div>
+                                )}
+                                 <div>
+                                    <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Stemming:</h4>
+                                    <p className={`${themeColors.subtleText} italic`}>{moodLabels[trade.mood] || "Geen specifieke stemming genoteerd."}</p>
+                                </div>
+                                {trade.imageUrl && (
+                                    <div className="my-2">
+                                        <p className={`font-medium ${themeColors.cardText} mb-1`}>Grafiek:</p>
+                                        <img 
+                                            src={trade.imageUrl} 
+                                            alt={`Trade chart ${trade.pair}`} 
+                                            className="rounded-md max-w-full h-auto sm:max-w-md mx-auto shadow-md border ${themeColors.borderColor}"
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                    </div>
+                                )}
+                                 {trade.imageUrlOptional && (
+                                    <div className="my-2">
+                                        <p className={`font-medium ${themeColors.cardText} mb-1`}>Order Bewijs:</p>
+                                        <img 
+                                            src={trade.imageUrlOptional} 
+                                            alt={`Order bewijs ${trade.pair}`} 
+                                            className="rounded-md max-w-full h-auto sm:max-w-xs mx-auto shadow-md border ${themeColors.borderColor}"
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                    </div>
+                                )}
+                                {(!trade.imageUrl && !trade.imageUrlOptional && !trade.reasoning) && (
+                                    <p className={`${themeColors.subtleText}`}>Geen extra details beschikbaar voor deze trade.</p>
+                                )}
+                            </div>
+                        )}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors, onNavigateToTimeline, onNavigateToContact, userId, isAdmin, onAdminLogout, navigateTo }) => { 
     const [kpiValues, setKpiValues] = useState({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 }); 
     const [accounts, setAccounts] = useState([]); 
@@ -631,8 +729,86 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
     
     const analyticsTabs = [ { id: 'monthlyGrowth', label: 'Maandelijkse Groei (%)', icon: TrendingUp }, { id: 'yearlyGrowth', label: 'Jaarlijkse Groei (%)', icon: CalendarDays }, { id: 'nerdStats', label: 'Voor de Nerds', icon: Brain }, ]; 
     
-    return ( <div className={`min-h-screen font-inter ${themeColors.bg} ${themeColors.text}`}> <DashboardNavbar onToggleTheme={toggleTheme} currentTheme={currentTheme} themeColors={themeColors} onNavigateToTimeline={onNavigateToTimeline} onNavigateToContact={onNavigateToContact} isAdmin={isAdmin} onAdminLogout={onAdminLogout} onTabChange={setActiveMainTab} activeTab={activeMainTab} onNavigateToLanding={() => navigateTo('landing')} /> <main className="p-4 sm:p-6 md:p-8 space-y-8"> {activeMainTab === 'overview' && ( <section id="dashboard-overview"> <h2 className={`text-2xl sm:text-3xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Dashboard Overzicht</h2> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Hier zie je mijn resultaten concreet</em> <div className="mb-6 flex flex-wrap gap-2 items-center"> <span className={`mr-2 text-sm ${themeColors.subtleText}`}>Toon data voor:</span> <button onClick={() => setSelectedAccountFilterId('cumulative')} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === 'cumulative' ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> Cumulatief </button> {accounts.map(acc => ( <button key={acc.id} onClick={() => setSelectedAccountFilterId(acc.id)} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === acc.id ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> {acc.name} </button> ))} </div> <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"> {kpiData.map(kpi => <KPI_Card key={kpi.title} {...kpi} themeColors={themeColors} />)} </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg`}> <h3 className={`text-xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Equity Curve</h3> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Mooie grafiek he?</em> <div className={`h-[450px] md:h-[550px] flex items-center justify-center rounded-md ${themeColors.text === 'text-slate-200' ? 'border-opacity-30' : 'border-opacity-50'}`}> {tradesLoading ? ( <p className={`${themeColors.subtleText}`}>Equity curve data laden...</p> ) : ( <SimpleEquityChart data={equityCurveData} themeColors={themeColors} /> )} </div> </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}> <div className="flex border-b ${themeColors.borderColor} mb-4 overflow-x-auto pb-px"> {analyticsTabs.map(tab => { const IconComponent = tab.icon; return ( <button key={tab.id} onClick={() => setActiveAnalyticsTab(tab.id)} className={`flex-shrink-0 flex items-center py-3 px-3 sm:px-4 -mb-px font-medium text-xs sm:text-sm focus:outline-none transition-colors duration-200 ${activeAnalyticsTab === tab.id ? `border-b-2 ${themeColors.primaryAccent.replace('text-','border-')} ${themeColors.primaryAccent}` : `${themeColors.subtleText} hover:${themeColors.text}` }`}> {IconComponent && <IconComponent className="mr-1 sm:mr-2" size={16} sm:size={18}/>} {tab.label} </button> ); })} </div> <div> {activeAnalyticsTab === 'monthlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>8% - 14%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'yearlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>96% - 168%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'nerdStats' && ( <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm"> <div><span className={`${themeColors.cardText} font-medium`}>Risk to Ruin %:</span> <span className={themeColors.subtleText}>0% (Gebaseerd op 500 trades)</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Expected Value (EV) / Trade:</span> <span className={kpiValues.evPerTrade >= 0 ? themeColors.textPositive : themeColors.textNegative}>{kpiValues.evPerTrade.toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Max Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.maxDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gemiddelde Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.avgDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gem. Dagen Tussen Trades:</span> <span className={themeColors.subtleText}>{kpiValues.avgDaysBetweenTrades.toFixed(1)}</span></div> </div> )} </div> </div> <div ref={tradesSectionRef}> <TradeList trades={allTrades} accounts={accounts} themeColors={themeColors} selectedAccountFilterId={selectedAccountFilterId} /> </div> <UserAccountStatusList themeColors={themeColors} userId={userId} allTrades={allTrades} onSelectAccountTrades={handleSelectAccountTrades} /> </section> )} {isAdmin && activeMainTab === 'admin' && ( <section id="admin-panel" className="mt-2 space-y-8"> <h2 className={`text-2xl sm:text-3xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Administrator Paneel</h2> <AdminTradeInputForm themeColors={themeColors} userId={userId} accounts={accounts} /> <AdminAccountManagement themeColors={themeColors} userId={userId} onAccountAdded={handleAccountAdded} accounts={accounts} setAccounts={setAccounts} /> </section> )} <button onClick={onBackToLanding} className={`mt-8 ${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out self-center`}> Terug naar Home </button> </main> </div> );};
-const AdminLoginPage = ({ onSuccessfulAdminLogin, onBackToLanding, themeColors }) => { const [username, setUsername] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const handleLogin = async (e) => { e.preventDefault(); setError(''); try { const userCredential = await signInWithEmailAndPassword(auth, username, password); console.log("Firebase login succesvol voor:", userCredential.user.email, "UID:", userCredential.user.uid); onSuccessfulAdminLogin(userCredential.user); } catch (error) { console.error('Login fout:', error.code, error.message); if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') { setError('Ongeldige email of wachtwoord.'); } else if (error.code === 'auth/operation-not-allowed') { setError('Inloggen met e-mail & wachtwoord is niet ingeschakeld. Contacteer de beheerder.'); } else { setError('Er is een fout opgetreden. Probeer het opnieuw.'); } } }; const inputClass = `w-full p-3 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors`; const labelClass = `block text-sm font-medium mb-1 ${themeColors.subtleText}`; return ( <div className={`min-h-screen ${themeColors.bg} ${themeColors.text} flex flex-col justify-center items-center p-8 font-inter`}> <div className={`w-full max-w-md ${themeColors.cardBg} p-8 md:p-10 rounded-xl shadow-2xl`}> <div className="text-center mb-8"> <ShieldCheck size={48} className={`${themeColors.primaryAccent} mx-auto mb-4`} /> <h1 className={`text-3xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Admin Login</h1> </div> <form onSubmit={handleLogin} className="space-y-6"> <div> <label htmlFor="username" className={labelClass}>Email</label> <input type="email" id="username" value={username} onChange={(e) => setUsername(e.target.value)} className={inputClass} required /> </div> <div> <label htmlFor="password" className={labelClass}>Wachtwoord</label> <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} required /> </div> {error && <p className="text-sm text-red-500 text-center">{error}</p>} <button type="submit" className={`${themeColors.adminButtonBg} hover:${themeColors.adminButtonHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors`}> Inloggen </button> </form> <button onClick={onBackToLanding} className={`mt-6 w-full bg-transparent border-2 ${themeColors.borderColor} hover:${themeColors.inputBg} ${themeColors.subtleText} font-semibold py-3 px-6 rounded-lg text-lg transition-colors`}> Terug naar Home </button> </div> </div> );};
+    return ( <div className={`min-h-screen font-inter ${themeColors.bg} ${themeColors.text}`}> <DashboardNavbar onToggleTheme={toggleTheme} currentTheme={currentTheme} themeColors={themeColors} onNavigateToTimeline={onNavigateToTimeline} onNavigateToContact={onNavigateToContact} isAdmin={isAdmin} onAdminLogout={onAdminLogout} onTabChange={setActiveMainTab} activeTab={activeMainTab} onNavigateToLanding={() => navigateTo('landing')} /> <main className="p-4 sm:p-6 md:p-8 space-y-8"> {activeMainTab === 'overview' && ( <section id="dashboard-overview"> <h2 className={`text-2xl sm:text-3xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Dashboard Overzicht</h2> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> <div className="mb-6 flex flex-wrap gap-2 items-center"> <span className={`mr-2 text-sm ${themeColors.subtleText}`}>Toon data voor:</span> <button onClick={() => setSelectedAccountFilterId('cumulative')} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === 'cumulative' ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> Cumulatief </button> {accounts.map(acc => ( <button key={acc.id} onClick={() => setSelectedAccountFilterId(acc.id)} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === acc.id ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> {acc.name} </button> ))} </div> <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"> {kpiData.map(kpi => <KPI_Card key={kpi.title} {...kpi} themeColors={themeColors} />)} </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg`}> <h3 className={`text-xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Equity Curve</h3> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> <div className={`h-[450px] md:h-[550px] flex items-center justify-center rounded-md ${themeColors.text === 'text-slate-200' ? 'border-opacity-30' : 'border-opacity-50'}`}> {tradesLoading ? ( <p className={`${themeColors.subtleText}`}>Equity curve data laden...</p> ) : ( <SimpleEquityChart data={equityCurveData} themeColors={themeColors} /> )} </div> </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}> <div className="flex border-b ${themeColors.borderColor} mb-4 overflow-x-auto pb-px"> {analyticsTabs.map(tab => { const IconComponent = tab.icon; return ( <button key={tab.id} onClick={() => setActiveAnalyticsTab(tab.id)} className={`flex-shrink-0 flex items-center py-3 px-3 sm:px-4 -mb-px font-medium text-xs sm:text-sm focus:outline-none transition-colors duration-200 ${activeAnalyticsTab === tab.id ? `border-b-2 ${themeColors.primaryAccent.replace('text-','border-')} ${themeColors.primaryAccent}` : `${themeColors.subtleText} hover:${themeColors.text}` }`}> {IconComponent && <IconComponent className="mr-1 sm:mr-2" size={16} sm:size={18}/>} {tab.label} </button> ); })} </div> <div> {activeAnalyticsTab === 'monthlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>8% - 14%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'yearlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>96% - 168%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'nerdStats' && ( <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm"> <div><span className={`${themeColors.cardText} font-medium`}>Risk to Ruin %:</span> <span className={themeColors.subtleText}>0% (Gebaseerd op 500 trades)</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Expected Value (EV) / Trade:</span> <span className={kpiValues.evPerTrade >= 0 ? themeColors.textPositive : themeColors.textNegative}>{kpiValues.evPerTrade.toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Max Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.maxDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gemiddelde Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.avgDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gem. Dagen Tussen Trades:</span> <span className={themeColors.subtleText}>{kpiValues.avgDaysBetweenTrades.toFixed(1)}</span></div> </div> )} </div> </div> <div ref={tradesSectionRef}> <TradeList trades={allTrades} accounts={accounts} themeColors={themeColors} selectedAccountFilterId={selectedAccountFilterId} /> </div> <UserAccountStatusList themeColors={themeColors} userId={userId} allTrades={allTrades} onSelectAccountTrades={handleSelectAccountTrades} /> </section> )} {isAdmin && activeMainTab === 'admin' && ( <section id="admin-panel" className="mt-2 space-y-8"> <h2 className={`text-2xl sm:text-3xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Administrator Paneel</h2> <AdminTradeInputForm themeColors={themeColors} userId={userId} accounts={accounts} /> <AdminAccountManagement themeColors={themeColors} userId={userId} onAccountAdded={handleAccountAdded} accounts={accounts} setAccounts={setAccounts} /> </section> )} <button onClick={onBackToLanding} className={`mt-8 ${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out self-center`}> Terug naar Home </button> </main> </div> );};
+const AdminLoginPage = ({ onSuccessfulAdminLogin, onBackToLanding, themeColors }) => {
+  const [pin, setPin] = useState(Array(5).fill(''));
+  const [error, setError] = useState('');
+  const inputRefs = useRef([]);
+
+  const handleChange = (e, index) => {
+    const { value } = e.target;
+    if (/^[0-9]$/.test(value) || value === "") { 
+      const newPin = [...pin];
+      newPin[index] = value;
+      setPin(newPin);
+      if (value && index < 4) {
+        inputRefs.current[index + 1].focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      inputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    const enteredPin = pin.join('');
+    if (enteredPin === THE_ADMIN_PIN) {
+      console.log("PIN login succesvol, THE_ADMIN_UID:", THE_ADMIN_UID);
+      onSuccessfulAdminLogin(); 
+    } else {
+      setError('Ongeldige pincode.');
+      setPin(Array(5).fill('')); 
+      inputRefs.current[0].focus(); 
+    }
+  };
+
+  const inputClass = `w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl sm:text-3xl font-semibold rounded-lg ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-colors mx-1`;
+  const labelClass = `block text-sm font-medium mb-2 ${themeColors.subtleText}`;
+
+  return (
+    <div className={`min-h-screen ${themeColors.bg} ${themeColors.text} flex flex-col justify-center items-center p-8 font-inter`}>
+      <div className={`w-full max-w-md ${themeColors.cardBg} p-8 md:p-10 rounded-xl shadow-2xl`}>
+        <div className="text-center mb-8">
+          <Key size={48} className={`${themeColors.primaryAccent} mx-auto mb-4`} />
+          <h1 className={`text-3xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Admin Pincode</h1>
+        </div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label htmlFor="pin-0" className={labelClass}>Voer uw 5-cijferige pincode in:</label>
+            <div className="flex justify-center space-x-2">
+              {pin.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`pin-${index}`}
+                  type="password" 
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => handleChange(e, index)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                  ref={el => inputRefs.current[index] = el}
+                  className={inputClass}
+                  autoComplete="off"
+                />
+              ))}
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+          <button type="submit" className={`${themeColors.adminButtonBg} hover:${themeColors.adminButtonHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors`}>
+            Inloggen
+          </button>
+        </form>
+        <button onClick={onBackToLanding} className={`mt-6 w-full bg-transparent border-2 ${themeColors.borderColor} hover:${themeColors.inputBg} ${themeColors.subtleText} font-semibold py-3 px-6 rounded-lg text-lg transition-colors`}>
+          Terug naar Home
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const FloatingCallButton = ({ themeColors }) => {
   const handleCallClick = () => {
@@ -662,5 +838,55 @@ const Footer = ({themeColors}) => {
 };
 
 
-const App = () => { const [currentView, setCurrentView] = useState('landing'); const [currentUser, setCurrentUser] = useState(null); const [isAuthReady, setIsAuthReady] = useState(false); const [theme, setTheme] = useState('light'); const [isAdmin, setIsAdmin] = useState(false); const currentThemeColors = themes[theme]; const navigateTo = (view) => { const pageContainer = document.getElementById('page-container'); if (pageContainer) { pageContainer.style.opacity = '0'; setTimeout(() => { setCurrentView(view); window.scrollTo(0, 0); const innerContainer = document.querySelector('.journey-container, .flex-grow.overflow-y-auto'); if(innerContainer) innerContainer.scrollTop = 0; setTimeout(() => { pageContainer.style.opacity = '1'; }, 50); }, 250); } else { setCurrentView(view); window.scrollTo(0,0); } }; useEffect(() => { const authListener = onAuthStateChanged(auth, async (user) => { console.log("Auth state changed, user:", user); if (user) { setCurrentUser(user); const userDocRef = doc(db, `/artifacts/${appId}/users/${user.uid}/profile`, 'info'); const userDocSnap = await getDoc(userDocRef); if (!userDocSnap.exists()) { try { const newAdminStatus = user.uid === THE_ADMIN_UID; console.log("Nieuw profiel aanmaken voor UID:", user.uid, "isAdmin wordt:", newAdminStatus); await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Jeremy Mlynarczyk', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: newAdminStatus }); setTheme('light'); setIsAdmin(newAdminStatus); } catch (error) { console.error("Fout bij aanmaken gebruikersprofiel:", error); } } else { const profileData = userDocSnap.data(); setTheme(profileData?.themePreference || 'light'); const newAdminStatus = profileData?.isAdmin && user.uid === THE_ADMIN_UID; console.log("Bestaand profiel voor UID:", user.uid, "Firestore isAdmin:", profileData?.isAdmin, "Berekende isAdmin:", newAdminStatus); setIsAdmin(newAdminStatus); } } else { if (typeof __initial_auth_token === 'undefined' || !__initial_auth_token) { console.log("Geen gebruiker, probeer anoniem in te loggen."); signInAnonymously(auth).catch(error => console.error("Anoniem inloggen mislukt:", error)); } setCurrentUser(null); setIsAdmin(false); console.log("Gebruiker uitgelogd, isAdmin gereset naar false."); } setIsAuthReady(true); }); const attemptCustomSignIn = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { try { console.log("Probeert custom token sign-in..."); await signInWithCustomToken(auth, __initial_auth_token); console.log("Custom token sign-in succesvol."); } catch (error) { console.error("Custom token inloggen mislukt, probeer anoniem:", error); signInAnonymously(auth).catch(anonError => console.error("Anoniem inloggen ook mislukt na custom token fail:", anonError)); } } }; if (!auth.currentUser) { attemptCustomSignIn(); } return () => authListener(); }, []); const toggleTheme = async () => { const newTheme = theme === 'dark' ? 'light' : 'dark'; setTheme(newTheme); if (currentUser) { try { const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/profile`, 'info'); await updateDoc(userDocRef, { themePreference: newTheme }); } catch (error) { console.error("Fout bij updaten thema voorkeur:", error); } } }; const handleSuccessfulAdminLogin = async (firebaseUser) => { console.log("handleSuccessfulAdminLogin aangeroepen voor UID:", firebaseUser?.uid); if (firebaseUser && firebaseUser.uid === THE_ADMIN_UID) { console.log("Admin UID MATCH. Firebase UID:", firebaseUser.uid, "THE_ADMIN_UID:", THE_ADMIN_UID); const userDocRef = doc(db, `/artifacts/${appId}/users/${firebaseUser.uid}/profile`, 'info'); try { const userDocSnap = await getDoc(userDocRef); if (userDocSnap.exists()) { await updateDoc(userDocRef, { isAdmin: true }); console.log("Firestore profiel geüpdatet, isAdmin: true"); } else { await setDoc(userDocRef, { email: firebaseUser.email || 'anoniem', name: firebaseUser.displayName || 'Admin JMarkets', createdAt: Timestamp.now(), themePreference: theme, isAdmin: true }); console.log("Nieuw Firestore profiel aangemaakt, isAdmin: true"); } setIsAdmin(true); setCurrentUser(firebaseUser); navigateTo('dashboard'); console.log("Admin status geactiveerd en genavigeerd naar dashboard voor user:", firebaseUser.uid); } catch (error) { console.error("Fout bij instellen admin status na login:", error); } } else if (firebaseUser) { console.warn("Admin login MISLUKT: UID mismatch. Ingelogde UID:", firebaseUser.uid, "Verwachte Admin UID:", THE_ADMIN_UID); await firebaseSignOut(auth); setIsAdmin(false); setCurrentUser(null); } else { console.error("handleSuccessfulAdminLogin aangeroepen zonder geldig firebaseUser object"); } }; const handleAdminLogout = async () => { console.log("Admin logout gestart..."); if (currentUser) { const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/profile`, 'info'); try { await updateDoc(userDocRef, { isAdmin: false }); console.log("Firestore isAdmin status gezet op false voor UID:", currentUser.uid); } catch (error) { console.error("Fout bij deactiveren admin status in DB:", error); } } try { await firebaseSignOut(auth); console.log("Firebase signOut succesvol."); setIsAdmin(false); setCurrentUser(null); navigateTo('landing'); console.log("Admin status gedeactiveerd en genavigeerd naar landing."); } catch (error) { console.error("Fout bij Firebase signOut:", error); } }; const pageProps = { theme, toggleTheme, themeColors: currentThemeColors, isAdmin }; let viewComponent; if (currentView === 'landing') { viewComponent = <LandingPage onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} onNavigateToAdminLogin={() => navigateTo('adminLogin')} {...pageProps} />; } else if (currentView === 'adminLogin') { viewComponent = <AdminLoginPage onSuccessfulAdminLogin={handleSuccessfulAdminLogin} onBackToLanding={() => navigateTo('landing')} themeColors={currentThemeColors} />; } else if (currentView === 'timeline') { viewComponent = <MyJourneyTimelinePage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToContact={() => navigateTo('contact')} {...pageProps} />; } else if (currentView === 'contact') { viewComponent = <ContactPage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} {...pageProps} />; } else if (currentView === 'dashboard') { viewComponent = <DashboardView onBackToLanding={() => navigateTo('landing')} currentTheme={theme} toggleTheme={toggleTheme} themeColors={currentThemeColors} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} userId={currentUser?.uid} isAdmin={isAdmin} onAdminLogout={handleAdminLogout} navigateTo={navigateTo}/>; } else { viewComponent = <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Ongeldige weergave.</p></div>; } if (!isAuthReady) { return <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Authenticatie laden...</p></div>; } return ( <div className="flex flex-col min-h-screen"> <div id="page-container" className="flex-grow transition-opacity duration-200 ease-in-out" style={{opacity: 1}}> {viewComponent} </div> <FloatingCallButton themeColors={currentThemeColors} /> <Footer themeColors={currentThemeColors} /> </div> );};
+const App = () => { const [currentView, setCurrentView] = useState('landing'); const [currentUser, setCurrentUser] = useState(null); const [isAuthReady, setIsAuthReady] = useState(false); const [theme, setTheme] = useState('light'); const [isAdmin, setIsAdmin] = useState(false); const currentThemeColors = themes[theme]; const navigateTo = (view) => { const pageContainer = document.getElementById('page-container'); if (pageContainer) { pageContainer.style.opacity = '0'; setTimeout(() => { setCurrentView(view); window.scrollTo(0, 0); const innerContainer = document.querySelector('.journey-container, .flex-grow.overflow-y-auto'); if(innerContainer) innerContainer.scrollTop = 0; setTimeout(() => { pageContainer.style.opacity = '1'; }, 50); }, 250); } else { setCurrentView(view); window.scrollTo(0,0); } }; useEffect(() => { const authListener = onAuthStateChanged(auth, async (user) => { console.log("Auth state changed, user:", user); if (user) { setCurrentUser(user); const userDocRef = doc(db, `/artifacts/${appId}/users/${user.uid}/profile`, 'info'); const userDocSnap = await getDoc(userDocRef); if (!userDocSnap.exists()) { try { const newAdminStatus = user.uid === THE_ADMIN_UID; console.log("Nieuw profiel aanmaken voor UID:", user.uid, "isAdmin wordt:", newAdminStatus); await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Jeremy Mlynarczyk', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: newAdminStatus }); setTheme('light'); setIsAdmin(newAdminStatus); } catch (error) { console.error("Fout bij aanmaken gebruikersprofiel:", error); } } else { const profileData = userDocSnap.data(); setTheme(profileData?.themePreference || 'light'); const newAdminStatus = profileData?.isAdmin && user.uid === THE_ADMIN_UID; console.log("Bestaand profiel voor UID:", user.uid, "Firestore isAdmin:", profileData?.isAdmin, "Berekende isAdmin:", newAdminStatus); setIsAdmin(newAdminStatus); } } else { if (typeof __initial_auth_token === 'undefined' || !__initial_auth_token) { console.log("Geen gebruiker, probeer anoniem in te loggen."); signInAnonymously(auth).catch(error => console.error("Anoniem inloggen mislukt:", error)); } setCurrentUser(null); setIsAdmin(false); console.log("Gebruiker uitgelogd, isAdmin gereset naar false."); } setIsAuthReady(true); }); const attemptCustomSignIn = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { try { console.log("Probeert custom token sign-in..."); await signInWithCustomToken(auth, __initial_auth_token); console.log("Custom token sign-in succesvol."); } catch (error) { console.error("Custom token inloggen mislukt, probeer anoniem:", error); signInAnonymously(auth).catch(anonError => console.error("Anoniem inloggen ook mislukt na custom token fail:", anonError)); } } }; if (!auth.currentUser) { attemptCustomSignIn(); } return () => authListener(); }, []); const toggleTheme = async () => { const newTheme = theme === 'dark' ? 'light' : 'dark'; setTheme(newTheme); if (currentUser) { try { const userDocRef = doc(db, `/artifacts/${appId}/users/${currentUser.uid}/profile`, 'info'); await updateDoc(userDocRef, { themePreference: newTheme }); } catch (error) { console.error("Fout bij updaten thema voorkeur:", error); } } }; const handleSuccessfulAdminLogin = async () => { 
+    console.log("handleSuccessfulAdminLogin aangeroepen na PIN succes");
+    setIsAdmin(true); 
+    navigateTo('dashboard');
+    console.log("Genavigeerd naar dashboard. Probeer Firestore isAdmin vlag te zetten.");
+
+    if (THE_ADMIN_UID && THE_ADMIN_UID !== "YOUR_ACTUAL_ADMIN_UID_HERE") {
+        const userDocRef = doc(db, `/artifacts/${appId}/users/${THE_ADMIN_UID}/profile`, 'info');
+        try {
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                await updateDoc(userDocRef, { isAdmin: true });
+                console.log("Firestore profiel geüpdatet, isAdmin: true voor UID:", THE_ADMIN_UID);
+            } else {
+                await setDoc(userDocRef, { 
+                    email: 'admin@jmarkets.nl', 
+                    name: 'JMarkets Admin', 
+                    createdAt: Timestamp.now(), 
+                    themePreference: theme, 
+                    isAdmin: true 
+                });
+                console.log("Nieuw Firestore profiel aangemaakt voor admin, isAdmin: true voor UID:", THE_ADMIN_UID);
+            }
+        } catch (error) {
+            console.error("Fout bij instellen isAdmin vlag in Firestore na PIN login:", error);
+        }
+    } else {
+        console.warn("THE_ADMIN_UID is niet correct geconfigureerd. Firestore isAdmin vlag niet gezet.");
+    }
+}; const handleAdminLogout = async () => { console.log("Admin logout gestart..."); setIsAdmin(false); 
+    if (THE_ADMIN_UID && THE_ADMIN_UID !== "YOUR_ACTUAL_ADMIN_UID_HERE") { 
+        const userDocRef = doc(db, `/artifacts/${appId}/users/${THE_ADMIN_UID}/profile`, 'info'); 
+        try { 
+            await updateDoc(userDocRef, { isAdmin: false }); 
+            console.log("Firestore isAdmin status gezet op false voor UID:", THE_ADMIN_UID); 
+        } catch (error) { 
+            console.error("Fout bij deactiveren admin status in DB:", error); 
+        } 
+    } 
+    try { 
+        if (auth.currentUser) { 
+            await firebaseSignOut(auth); 
+            console.log("Firebase signOut succesvol."); 
+        } 
+        setCurrentUser(null); 
+        navigateTo('landing'); 
+        console.log("Admin status gedeactiveerd en genavigeerd naar landing."); 
+    } catch (error) { 
+        console.error("Fout bij Firebase signOut:", error); 
+    } 
+}; const pageProps = { theme, toggleTheme, themeColors: currentThemeColors, isAdmin }; let viewComponent; if (currentView === 'landing') { viewComponent = <LandingPage onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} onNavigateToAdminLogin={() => navigateTo('adminLogin')} {...pageProps} />; } else if (currentView === 'adminLogin') { viewComponent = <AdminLoginPage onSuccessfulAdminLogin={handleSuccessfulAdminLogin} onBackToLanding={() => navigateTo('landing')} themeColors={currentThemeColors} />; } else if (currentView === 'timeline') { viewComponent = <MyJourneyTimelinePage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToContact={() => navigateTo('contact')} {...pageProps} />; } else if (currentView === 'contact') { viewComponent = <ContactPage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} {...pageProps} />; } else if (currentView === 'dashboard') { viewComponent = <DashboardView onBackToLanding={() => navigateTo('landing')} currentTheme={theme} toggleTheme={toggleTheme} themeColors={currentThemeColors} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} userId={currentUser?.uid} isAdmin={isAdmin} onAdminLogout={handleAdminLogout} navigateTo={navigateTo}/>; } else { viewComponent = <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Ongeldige weergave.</p></div>; } if (!isAuthReady) { return <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Authenticatie laden...</p></div>; } return ( <div className="flex flex-col min-h-screen"> <div id="page-container" className="flex-grow transition-opacity duration-200 ease-in-out" style={{opacity: 1}}> {viewComponent} </div> <FloatingCallButton themeColors={currentThemeColors} /> <Footer themeColors={currentThemeColors} /> </div> );};
 export default App;
