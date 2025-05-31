@@ -8,12 +8,13 @@ import { setLogLevel } from 'firebase/app';
 
 // Firebase Configuratie
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-  apiKey: "YOUR_API_KEY", 
-  authDomain: "YOUR_AUTH_DOMAIN", 
-  projectId: "YOUR_PROJECT_ID", 
-  storageBucket: "YOUR_STORAGE_BUCKET", 
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", 
-  appId: "YOUR_APP_ID" 
+   apiKey: "AIzaSyCOYo3G-jVzG-ZDmsdjaJchvZXBRUwELBk",
+  authDomain: "jmarketsnl.firebaseapp.com",
+  projectId: "jmarketsnl",
+  storageBucket: "jmarketsnl.firebasestorage.app",
+  messagingSenderId: "557370275644",
+  appId: "1:557370275644:web:6372fde36a5ff999a11039",
+  measurementId: "G-KW7ZSN3CZB"
 };
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'jmarkets-journal-app-prod'; 
 const app = initializeApp(firebaseConfig);
