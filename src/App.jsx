@@ -1,37 +1,39 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { Briefcase, User, LayoutDashboard, Eye, ChevronDown, Menu, X, DollarSign, Percent, BarChart2, TrendingUp, Settings, PlusCircle, Edit3, Trash2, Image as ImageIcon, LogIn, Moon, Sun, Send, MapPin, Phone, Mail, Home, CalendarDays, Rocket, Target, Award, Building, CheckCircle, XCircle, BookOpen, ShieldCheck, LogOut, Key, ChevronUp, Brain, Youtube as YoutubeIcon, ArrowDownRight, Copyright, Layers, ListChecks, Smile, Meh, Frown, AlertTriangle, UploadCloud, Zap, TrendingDown, Lightbulb, Scale, FileImage, ExternalLink, Handshake, Clock } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth'; 
 import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; 
 import { setLogLevel } from 'firebase/app';
 
 // Admin PIN en de ID waaronder admin data wordt opgeslagen/gelezen in Firestore
 const THE_ADMIN_PIN = "86878"; // Hardgecodeerde PIN
 const ADMIN_DATA_OWNER_ID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; // Vaste ID voor admin data opslag
+// THE_ADMIN_UID wordt nog steeds gebruikt in onAuthStateChanged om te checken of een via Firebase ingelogde gebruiker de admin is.
+const THE_ADMIN_UID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; 
 
 // Firebase Configuratie
-const firebaseConfig = typeof __firebase_config !== 'undefined'
-    ? JSON.parse(__firebase_config)
+const firebaseConfig = typeof __firebase_config !== 'undefined' 
+    ? JSON.parse(__firebase_config) 
     : { // Fallback voor lokale ontwikkeling
         apiKey: "AIzaSyCOYo3G-jVzG-ZDmsdjaJchvZXBRUwELBk",
         authDomain: "jmarketsnl.firebaseapp.com",
         projectId: "jmarketsnl",
-        storageBucket: "jmarketsnl.appspot.com", // Corrected typical storage bucket format
+        storageBucket: "jmarketsnl.appspot.com", 
         messagingSenderId: "557370275644",
-        appId: "YOUR_APP_ID" // BELANGRIJK: Vervang dit met je daadwerkelijke dev appId als je lokaal test zonder __firebase_config
+        appId: "1:557370275644:web:6372fde36a5ff999a11039" 
       };
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'jmarkets-journal-app-prod'; // Default App ID
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'jmarkets-journal-app-prod'; 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
-setLogLevel('debug'); // Firebase logging ('debug', 'warn', 'error'). Voor productie, overweeg 'warn' of 'error'.
+const storage = getStorage(app); 
+setLogLevel('debug'); 
 
 
 // Kleurenpalet
-const themes = {
-  dark: { bg: 'bg-slate-900', text: 'text-slate-200', cardBg: 'bg-slate-800', cardText: 'text-slate-300', primaryAccent: 'text-blue-400', primaryAccentBg: 'bg-blue-600', primaryAccentHoverBg: 'bg-blue-700', borderColor: 'border-slate-700', inputBg: 'bg-slate-700', inputText: 'text-slate-200', placeholderText: 'text-slate-500', subtleText: 'text-slate-400', subtleBg: 'bg-slate-800', timelineLine: 'border-slate-600', timelineDotBorder: 'border-slate-900', quoteText: 'text-slate-600', adminButtonBg: 'bg-emerald-600', adminButtonHoverBg: 'bg-emerald-700', chartGrid: 'stroke-slate-700', chartAxis: 'fill-slate-400', chartLabel: 'fill-slate-300', chartLine: 'stroke-blue-400', chartPoint: 'fill-blue-400', chartGradientFrom: 'rgba(59, 130, 246, 0.3)', chartGradientTo: 'rgba(59, 130, 246, 0.0)', textPositive: 'text-green-400', textNegative: 'text-red-400', tabActiveBg: 'bg-blue-600', tabInactiveBg: 'bg-slate-700', tabActiveText: 'text-white', tabInactiveText: 'text-slate-300', footerText: 'text-slate-500', filterButtonActiveBg: 'bg-blue-500', filterButtonInactiveBg: 'bg-slate-700', filterButtonActiveText: 'text-white', filterButtonInactiveText: 'text-slate-300', mood: ['text-red-500', 'text-orange-500', 'text-yellow-500', 'text-lime-500', 'text-green-500'], moodBg: ['bg-red-500/20', 'bg-orange-500/20', 'bg-yellow-500/20', 'bg-lime-500/20', 'bg-green-500/20'], disabledButtonBg: 'bg-slate-700', disabledButtonText: 'text-slate-500' },
+const themes = { 
+  dark: { bg: 'bg-slate-900', text: 'text-slate-200', cardBg: 'bg-slate-800', cardText: 'text-slate-300', primaryAccent: 'text-blue-400', primaryAccentBg: 'bg-blue-600', primaryAccentHoverBg: 'bg-blue-700', borderColor: 'border-slate-700', inputBg: 'bg-slate-700', inputText: 'text-slate-200', placeholderText: 'text-slate-500', subtleText: 'text-slate-400', subtleBg: 'bg-slate-800', timelineLine: 'border-slate-600', timelineDotBorder: 'border-slate-900', quoteText: 'text-slate-600', adminButtonBg: 'bg-emerald-600', adminButtonHoverBg: 'bg-emerald-700', chartGrid: 'stroke-slate-700', chartAxis: 'fill-slate-400', chartLabel: 'fill-slate-300', chartLine: 'stroke-blue-400', chartPoint: 'fill-blue-400', chartGradientFrom: 'rgba(59, 130, 246, 0.3)', chartGradientTo: 'rgba(59, 130, 246, 0.0)', textPositive: 'text-green-400', textNegative: 'text-red-400', tabActiveBg: 'bg-blue-600', tabInactiveBg: 'bg-slate-700', tabActiveText: 'text-white', tabInactiveText: 'text-slate-300', footerText: 'text-slate-500', filterButtonActiveBg: 'bg-blue-500', filterButtonInactiveBg: 'bg-slate-700', filterButtonActiveText: 'text-white', filterButtonInactiveText: 'text-slate-300', mood: ['text-red-500', 'text-orange-500', 'text-yellow-500', 'text-lime-500', 'text-green-500'], moodBg: ['bg-red-500/20', 'bg-orange-500/20', 'bg-yellow-500/20', 'bg-lime-500/20', 'bg-green-500/20'], disabledButtonBg: 'bg-slate-700', disabledButtonText: 'text-slate-500' }, 
   light: { bg: 'bg-slate-50', text: 'text-slate-800', cardBg: 'bg-white', cardText: 'text-slate-700', primaryAccent: 'text-blue-600', primaryAccentBg: 'bg-blue-600', primaryAccentHoverBg: 'bg-blue-700', borderColor: 'border-slate-300', inputBg: 'bg-slate-200', inputText: 'text-slate-800', placeholderText: 'text-slate-400', subtleText: 'text-slate-500', subtleBg: 'bg-slate-100', timelineLine: 'border-slate-300', timelineDotBorder: 'border-slate-50', quoteText: 'text-slate-400', adminButtonBg: 'bg-emerald-500', adminButtonHoverBg: 'bg-emerald-600', chartGrid: 'stroke-slate-300', chartAxis: 'fill-slate-500', chartLabel: 'fill-slate-700', chartLine: 'stroke-blue-600', chartPoint: 'fill-blue-600', chartGradientFrom: 'rgba(37, 99, 235, 0.2)', chartGradientTo: 'rgba(37, 99, 235, 0.0)', textPositive: 'text-green-600', textNegative: 'text-red-600', tabActiveBg: 'bg-blue-600', tabInactiveBg: 'bg-slate-200', tabActiveText: 'text-white', tabInactiveText: 'text-slate-600', footerText: 'text-slate-400', filterButtonActiveBg: 'bg-blue-600', filterButtonInactiveBg: 'bg-slate-200', filterButtonActiveText: 'text-white', filterButtonInactiveText: 'text-slate-600', mood: ['text-red-600', 'text-orange-500', 'text-yellow-500', 'text-lime-500', 'text-green-500'], moodBg: ['bg-red-600/20', 'bg-orange-500/20', 'bg-yellow-500/20', 'bg-lime-500/20', 'bg-green-500/20'], disabledButtonBg: 'bg-slate-200', disabledButtonText: 'text-slate-400'}
 };
 
@@ -58,53 +60,10 @@ const moodLabels = {
 
 // --- Componenten ---
 
-const RandomQuotesBackground = memo(({ count = 3, themeColors }) => {
+const RandomQuotesBackground = memo(({ count = 3, themeColors }) => { 
   const [randomQuotes, setRandomQuotes] = useState([]);
-  useEffect(() => {
-    const selectedQuotes = [];
-    const availableQuotes = [...tradingQuotesNL];
-    const possiblePositions = [
-      { top: '10%', left: '5%' }, { top: '15%', left: '80%' },
-      { top: '75%', left: '10%' }, { top: '80%', left: '75%' },
-      { top: '40%', left: '5%' }, { top: '50%', left: '85%' },
-    ];
-    const shuffledPositions = possiblePositions.sort(() => 0.5 - Math.random());
-
-    for (let i = 0; i < count; i++) {
-      if (availableQuotes.length === 0 || i >= shuffledPositions.length) break;
-      const randomIndex = Math.floor(Math.random() * availableQuotes.length);
-      const position = shuffledPositions[i];
-      selectedQuotes.push({
-        text: availableQuotes.splice(randomIndex, 1)[0],
-        top: position.top,
-        left: position.left,
-        rotation: `${Math.random() * 10 - 5}deg`,
-        size: `0.75rem`
-      });
-    }
-    setRandomQuotes(selectedQuotes);
-  }, [count]);
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      {randomQuotes.map((q, index) => (
-        <p
-          key={index}
-          className={`absolute italic ${themeColors.quoteText} opacity-20 select-none`}
-          style={{
-            top: q.top,
-            left: q.left,
-            transform: `translate(-50%, -50%) rotate(${q.rotation})`,
-            fontSize: q.size,
-            maxWidth: '150px',
-            textAlign: 'center',
-          }}
-        >
-          {q.text}
-        </p>
-      ))}
-    </div>
-  );
+  useEffect(() => { const selectedQuotes = []; const availableQuotes = [...tradingQuotesNL]; const possiblePositions = [ { top: '10%', left: '5%' }, { top: '15%', left: '80%' }, { top: '75%', left: '10%' }, { top: '80%', left: '75%' }, { top: '40%', left: '5%' }, { top: '50%', left: '85%' }, ]; const shuffledPositions = possiblePositions.sort(() => 0.5 - Math.random()); for (let i = 0; i < count; i++) { if (availableQuotes.length === 0 || i >= shuffledPositions.length) break; const randomIndex = Math.floor(Math.random() * availableQuotes.length); const position = shuffledPositions[i]; selectedQuotes.push({ text: availableQuotes.splice(randomIndex, 1)[0], top: position.top, left: position.left, rotation: `${Math.random() * 10 - 5}deg`, size: `0.75rem` }); } setRandomQuotes(selectedQuotes); }, [count]);
+  return ( <div className="absolute inset-0 overflow-hidden pointer-events-none z-0"> {randomQuotes.map((q, index) => ( <p key={index} className={`absolute italic ${themeColors.quoteText} opacity-20 select-none`} style={{ top: q.top, left: q.left, transform: `translate(-50%, -50%) rotate(${q.rotation})`, fontSize: q.size, maxWidth: '150px', textAlign: 'center', }}> {q.text} </p> ))} </div> );
 });
 
 const TypingEffect = ({ textParts, speed = 150, themeColors, onTypingComplete }) => {
@@ -117,8 +76,6 @@ const TypingEffect = ({ textParts, speed = 150, themeColors, onTypingComplete })
   useEffect(() => {
     if (isComplete || !textParts || textParts.length === 0 || (hasRunOnceRef.current && !onTypingComplete)) {
         if (hasRunOnceRef.current && onTypingComplete && !isComplete) {
-            // This ensures onTypingComplete is called once if the effect is "skipped" by hasRunOnceRef
-             // but setIsComplete wasn't set yet (e.g. if component unmounts or props change fast)
             onTypingComplete();
         }
         return;
@@ -137,14 +94,14 @@ const TypingEffect = ({ textParts, speed = 150, themeColors, onTypingComplete })
         setCurrentPartIndex(prev => prev + 1);
         setCurrentIndex(0);
       } else {
-        if (!isComplete) { // Ensure this block runs only once
+        if (!isComplete) {
             setIsComplete(true);
             hasRunOnceRef.current = true;
             if (onTypingComplete) onTypingComplete();
         }
       }
     }
-  }, [currentIndex, currentPartIndex, speed, textParts, isComplete, onTypingComplete]); // displayText removed from deps
+  }, [currentIndex, currentPartIndex, speed, textParts, isComplete, onTypingComplete]);
 
   const getTypedParts = () => {
       if (isComplete || hasRunOnceRef.current) {
@@ -162,7 +119,7 @@ const TypingEffect = ({ textParts, speed = 150, themeColors, onTypingComplete })
           let textToShowForPart = '';
           if (i < currentPartIndex) {
               textToShowForPart = part.text;
-          } else { // Current typing part
+          } else {
               textToShowForPart = displayText.substring(accumulatedText.length);
           }
           output.push(
@@ -212,7 +169,7 @@ const LandingPage = ({ onNavigateToDashboard, onNavigateToTimeline, onNavigateTo
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full max-w-xs sm:max-w-xl md:max-w-2xl">
                 <div className="relative group w-full sm:w-auto">
-                    <a href="https://youtube.com/@UwKanaalHier" target="_blank" rel="noopener noreferrer" className={`bg-transparent border-2 ${themeColors.primaryAccent.replace('text-','border-')} hover:${themeColors.primaryAccentBg} ${themeColors.primaryAccent} hover:text-white font-semibold py-3 px-6 rounded-lg text-base sm:text-lg transition-colors duration-300 inline-flex items-center w-full justify-center`}> <YoutubeIcon size={20} className="mr-2 sm:mr-3" /> Youtube </a>
+                    <a href="https://www.youtube.com/@jmarketsnl" target="_blank" rel="noopener noreferrer" className={`bg-transparent border-2 ${themeColors.primaryAccent.replace('text-','border-')} hover:${themeColors.primaryAccentBg} ${themeColors.primaryAccent} hover:text-white font-semibold py-3 px-6 rounded-lg text-base sm:text-lg transition-colors duration-300 inline-flex items-center w-full justify-center`}> <YoutubeIcon size={20} className="mr-2 sm:mr-3" /> Youtube </a>
                     <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center w-max px-2">
                         <ArrowDownRight size={16} className={`${themeColors.subtleText} transform -rotate-90 -mr-1`} />
                         <p className={`italic text-xs ${themeColors.subtleText} bg-opacity-50 ${themeColors.cardBg} p-1 rounded-md shadow-md`}>Hier mijn analyses & onderbouwingen!</p>
@@ -399,463 +356,11 @@ const MoodSmiley = memo(({ moodValue, themeColors, size = 18 }) => {
     );
 });
 
-const AdminTradeInputForm = ({ themeColors, userId, accounts }) => {
-  const [pair, setPair] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [tradeTime, setTradeTime] = useState(new Date().toTimeString().slice(0,5));
-  const [riskAmount, setRiskAmount] = useState('');
-  const [rr, setRr] = useState('');
-  const [outcome, setOutcome] = useState('win');
-  const [selectedAccountId, setSelectedAccountId] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [imageUrlOptional, setImageUrlOptional] = useState('');
-  const [reasoning, setReasoning] = useState('');
-  const [mood, setMood] = useState(null);
-  const [feedback, setFeedback] = useState('');
-  const [optionalImageFile, setOptionalImageFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (file && userId && userId === ADMIN_DATA_OWNER_ID) {
-        setOptionalImageFile(file);
-        setUploading(true);
-        setFeedback('Afbeelding uploaden...');
-        const filePath = `artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/tradeImages/${Date.now()}_${file.name}`;
-        const storageRefInstance = ref(storage, filePath); // Renamed to avoid conflict
-        const uploadTask = uploadBytesResumable(storageRefInstance, file);
-
-        uploadTask.on('state_changed',
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setFeedback(`Uploaden: ${Math.round(progress)}%`);
-            },
-            (error) => {
-                console.error("Upload fout:", error);
-                setFeedback("Fout bij uploaden afbeelding.");
-                setUploading(false);
-                setOptionalImageFile(null);
-                if(fileInputRef.current) fileInputRef.current.value = "";
-            },
-            () => {
-                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    setImageUrlOptional(downloadURL);
-                    setFeedback('Afbeelding succesvol geüpload!');
-                    setUploading(false);
-                });
-            }
-        );
-    } else {
-        setFeedback("Fout: Admin rechten vereist voor file upload.");
-    }
-  };
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (userId !== ADMIN_DATA_OWNER_ID) {
-        setFeedback("Fout: Geen admin rechten om trades toe te voegen.");
-        return;
-    }
-    if (!selectedAccountId) { setFeedback("Selecteer een account."); return; }
-    if (!mood) { setFeedback("Selecteer een stemming voor de trade."); return; }
-    const risk = parseFloat(riskAmount);
-    const rewardRatio = parseFloat(rr);
-    if (isNaN(risk) || isNaN(rewardRatio) || risk <= 0) { setFeedback("Ongeldige invoer voor risico of RR."); return; }
-    let pnl = outcome === 'win' ? risk * rewardRatio : -risk;
-
-    const newTrade = {
-        userId: ADMIN_DATA_OWNER_ID,
-        accountId: selectedAccountId,
-        pair,
-        date: Timestamp.fromDate(new Date(`${date}T${tradeTime || '00:00'}`)),
-        tradeTime: tradeTime || null,
-        riskAmount: risk,
-        rr: rewardRatio,
-        outcome,
-        pnl,
-        imageUrl,
-        imageUrlOptional,
-        reasoning,
-        mood,
-        createdAt: serverTimestamp()
-    };
-    try {
-      const tradesCollectionPath = `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/trades`;
-      await addDoc(collection(db, tradesCollectionPath), newTrade);
-      setFeedback("Trade succesvol toegevoegd!");
-      setPair(''); setDate(new Date().toISOString().split('T')[0]); setTradeTime(new Date().toTimeString().slice(0,5)); setRiskAmount(''); setRr(''); setOutcome('win'); setSelectedAccountId(''); setImageUrl(''); setImageUrlOptional(''); setReasoning(''); setMood(null); setOptionalImageFile(null);
-      if(fileInputRef.current) fileInputRef.current.value = "";
-      setTimeout(() => setFeedback(''), 3000);
-    } catch (error) { console.error("Fout bij toevoegen trade: ", error); setFeedback("Fout bij toevoegen trade. Controleer Firestore regels en console."); }
-  };
-  const inputClass = `w-full p-3 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors`;
-  const labelClass = `block text-sm font-medium mb-1 ${themeColors.subtleText}`;
-
-  return (
-    <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg`}>
-      <h3 className={`text-xl font-semibold mb-6 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Nieuwe Trade Toevoegen</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:space-x-4">
-            <div className="flex-1 mb-4 sm:mb-0"><label htmlFor="pair" className={labelClass}>Handelspaar (bijv. EURUSD)</label><input type="text" id="pair" value={pair} onChange={e => setPair(e.target.value)} className={inputClass} required /></div>
-            <div className="flex space-x-2 items-end">
-                <button type="button" onClick={() => setPair('MNQ')} className={`px-3 py-2 text-xs rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80`}>MNQ</button>
-                <button type="button" onClick={() => setPair('NQ')} className={`px-3 py-2 text-xs rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80`}>NQ</button>
-            </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label htmlFor="date" className={labelClass}>Datum</label><input type="date" id="date" value={date} onChange={e => setDate(e.target.value)} className={inputClass} required /></div>
-            <div><label htmlFor="tradeTime" className={labelClass}>Tijd</label><input type="time" id="tradeTime" value={tradeTime} onChange={e => setTradeTime(e.target.value)} className={inputClass} /></div>
-        </div>
-        <div><label htmlFor="riskAmount" className={labelClass}>Risico in $</label><input type="number" step="0.01" id="riskAmount" value={riskAmount} onChange={e => setRiskAmount(e.target.value)} className={inputClass} placeholder="bijv. 100" required /></div>
-        <div><label htmlFor="rr" className={labelClass}>Behaalde Risk/Reward Ratio (RR)</label><input type="number" step="0.01" id="rr" value={rr} onChange={e => setRr(e.target.value)} className={inputClass} placeholder="bijv. 2.5" required /></div>
-        <div> <label className={labelClass}>Uitkomst</label> <select id="outcome" value={outcome} onChange={e => setOutcome(e.target.value)} className={inputClass}> <option key="outcome-win" value="win">Winst</option> <option key="outcome-loss" value="loss">Verlies</option> </select> </div>
-        <div> <label htmlFor="account" className={labelClass}>Account</label> <select id="account" value={selectedAccountId} onChange={e => setSelectedAccountId(e.target.value)} className={inputClass} required> <option key="select-account-placeholder" value="">Selecteer Account</option> {accounts.map((acc, index) => { if (!acc || typeof acc.id !== 'string' || acc.id.trim() === '') { console.warn("AdminTradeInputForm: Ongeldig account of account ID bij index", index, acc); return null; } return <option key={`${acc.id}-${index}`} value={acc.id}>{acc.name}</option>; })} </select> </div>
-        <div><label htmlFor="imageUrl" className={labelClass}>Image URL (TradingView)</label><input type="url" id="imageUrl" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className={inputClass} placeholder="https://www.tradingview.com/chart/..." /></div>
-        <div>
-            <label htmlFor="imageUrlOptionalFile" className={labelClass}>Optionele Afbeelding (bijv. Order Bewijs)</label>
-            <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${themeColors.borderColor} border-dashed rounded-md`}>
-                <div className="space-y-1 text-center">
-                    <UploadCloud className={`mx-auto h-12 w-12 ${themeColors.subtleText}`} />
-                    <div className="flex text-sm text-gray-600">
-                        <label htmlFor="imageUrlOptionalFile" className={`relative cursor-pointer ${themeColors.cardBg} rounded-md font-medium ${themeColors.primaryAccent} hover:text-opacity-80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500`}>
-                            <span>Upload een bestand</span>
-                            <input id="imageUrlOptionalFile" name="imageUrlOptionalFile" type="file" className="sr-only" accept="image/*" onChange={handleFileChange} ref={fileInputRef} />
-                        </label>
-                    </div>
-                    <p className={`text-xs ${themeColors.subtleText}`}>PNG, JPG, GIF tot 10MB</p>
-                    {optionalImageFile && !uploading && <p className={`text-xs ${themeColors.primaryAccent} mt-1`}>Geselecteerd: {optionalImageFile.name}</p>}
-                    {uploading && <p className={`text-xs ${themeColors.primaryAccent} mt-1 animate-pulse`}>{feedback || 'Uploaden...'}</p>}
-                </div>
-            </div>
-        </div>
-        <div><label htmlFor="reasoning" className={labelClass}>Onderbouwing</label><textarea id="reasoning" rows="4" value={reasoning} onChange={e => setReasoning(e.target.value)} className={inputClass} placeholder="Denkgedachte, analyse..."></textarea></div>
-        <div> <label className={labelClass}>Stemming (verplicht)</label> <div className="flex space-x-2 mt-1"> {[1, 2, 3, 4, 5].map(value => { const moodConfigArr = [ { icon: Frown, color: themeColors.mood[0], bgColor: themeColors.moodBg[0] }, { icon: Frown, color: themeColors.mood[1], bgColor: themeColors.moodBg[1] }, { icon: Meh, color: themeColors.mood[2], bgColor: themeColors.moodBg[2] }, { icon: Smile, color: themeColors.mood[3], bgColor: themeColors.moodBg[3] }, { icon: Smile, color: themeColors.mood[4], bgColor: themeColors.moodBg[4] }]; const Icon = moodConfigArr[value-1].icon; return ( <button key={value} type="button" onClick={() => setMood(value)} className={`p-2 rounded-full transition-all duration-150 ${mood === value ? `${moodConfigArr[value-1].bgColor} ring-2 ${moodConfigArr[value-1].color.replace('text-','ring-')}` : `${themeColors.inputBg} hover:opacity-70`}`}> <Icon className={`${moodConfigArr[value-1].color}`} size={24} /> </button> ); })} </div> </div> <button type="submit" disabled={uploading} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors disabled:opacity-50`}> {uploading ? (feedback.startsWith("Uploaden:") ? feedback : 'Bezig met uploaden...') : 'Trade Opslaan'} </button> {feedback && !uploading && <p className={`mt-4 text-sm ${feedback.includes("succesvol") ? themeColors.primaryAccent : 'text-red-500'}`}>{feedback}</p>} </form> </div> );
-};
-
-const AdminAccountManagement = ({ themeColors, userId, onAccountAdded, accounts, setAccounts: updateParentAccounts }) => {
-  const [accountName, setAccountName] = useState('');
-  const [startKapitaal, setStartKapitaal] = useState('');
-  const [accountStatus, setAccountStatus] = useState('active');
-  const [feedback, setFeedback] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [accountToDelete, setAccountToDelete] = useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (userId !== ADMIN_DATA_OWNER_ID) { setFeedback("Fout: Geen admin rechten om accounts toe te voegen."); return; }
-    if (!accountName.trim()) { setFeedback("Account naam mag niet leeg zijn."); return; }
-    const kapitaalNum = parseFloat(startKapitaal);
-    if (isNaN(kapitaalNum) || kapitaalNum < 0) { setFeedback("Ongeldig startkapitaal ingevoerd."); return; }
-
-    const newAccount = { userId: ADMIN_DATA_OWNER_ID, name: accountName, startKapitaal: kapitaalNum, status: accountStatus, createdAt: serverTimestamp() };
-    try {
-      const accountsCollectionPath = `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/accounts`;
-      const docRef = await addDoc(collection(db, accountsCollectionPath), newAccount);
-      setFeedback(`Account "${accountName}" succesvol toegevoegd!`);
-      const addedAccount = { id: docRef.id, ...newAccount, createdAt: new Date() }; // Use client date for immediate display consistency
-      if(onAccountAdded) onAccountAdded(addedAccount); // Propagate to parent (DashboardView)
-      setAccountName(''); setStartKapitaal(''); setAccountStatus('active');
-      setTimeout(() => setFeedback(''), 3000);
-    } catch (error) { console.error("Fout bij toevoegen account: ", error); setFeedback("Fout bij toevoegen account. Controleer Firestore regels en console."); }
-  };
-
-  const handleDeleteAttempt = (account) => {
-    setAccountToDelete(account);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDeleteAccount = async () => {
-    if (!accountToDelete || userId !== ADMIN_DATA_OWNER_ID) return;
-    try {
-      const accountDocRef = doc(db, `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/accounts`, accountToDelete.id);
-      await deleteDoc(accountDocRef);
-      if (updateParentAccounts) { // This callback updates DashboardView's state
-        updateParentAccounts(prevAccounts => prevAccounts.filter(acc => acc.id !== accountToDelete.id));
-      }
-      setFeedback(`Account "${accountToDelete.name}" succesvol verwijderd.`);
-      setShowDeleteModal(false); setAccountToDelete(null);
-      setTimeout(() => setFeedback(''), 3000);
-    } catch (error) { console.error("Fout bij verwijderen account:", error); setFeedback("Fout bij verwijderen account."); setShowDeleteModal(false); setAccountToDelete(null); }
-  };
-
-  const inputClass = `w-full p-3 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors`;
-  const labelClass = `block text-sm font-medium mb-1 ${themeColors.subtleText}`;
-
-  return (
-    <>
-      <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}>
-        <h3 className={`text-xl font-semibold mb-6 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Account Toevoegen</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div><label htmlFor="accountName" className={labelClass}>Account Naam</label><input type="text" id="accountName" value={accountName} onChange={e => setAccountName(e.target.value)} className={inputClass} placeholder="bijv. Persoonlijk EUR" required /></div>
-          <div><label htmlFor="startKapitaal" className={labelClass}>Startkapitaal in $</label><input type="number" step="0.01" id="startKapitaal" value={startKapitaal} onChange={e => setStartKapitaal(e.target.value)} className={inputClass} placeholder="bijv. 10000" required /></div>
-          <div> <label htmlFor="accountStatus" className={labelClass}>Status</label> <select id="accountStatus" value={accountStatus} onChange={e => setAccountStatus(e.target.value)} className={inputClass}> <option key="status-active" value="active">Actief</option> <option key="status-inactive" value="inactive">Inactief</option> </select> </div>
-          <button type="submit" className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors`}>Account Opslaan</button>
-          {feedback && <p className={`mt-4 text-sm ${feedback.includes("succesvol") ? themeColors.primaryAccent : 'text-red-500'}`}>{feedback}</p>}
-        </form>
-      </div>
-      {accounts && accounts.length > 0 && (
-        <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}>
-          <h4 className={`text-lg font-semibold mb-4 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Bestaande Accounts Beheren</h4>
-          <ul className="space-y-2">
-            {accounts.map((acc) => ( // Directly use accounts prop
-              <li key={acc.id} className={`flex justify-between items-center p-3 rounded-md ${themeColors.subtleBg}`}>
-                <div>
-                  <p className={themeColors.cardText}>{acc.name}</p>
-                  <p className={`text-xs ${themeColors.subtleText}`}>Start: ${(acc.startKapitaal || 0).toLocaleString('nl-NL', {minimumFractionDigits: 2, maximumFractionDigits: 2})} | Aangemaakt: {acc.createdAt && typeof acc.createdAt.toDate === 'function' ? acc.createdAt.toDate().toLocaleDateString('nl-NL') : (acc.createdAt instanceof Date ? acc.createdAt.toLocaleDateString('nl-NL') : 'N/A')}</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${acc.status === 'active' ? 'bg-green-500/30 text-green-300' : 'bg-red-500/30 text-red-300'}`}>{acc.status}</span>
-                  <button onClick={() => handleDeleteAttempt(acc)} className="p-1 text-red-500 hover:text-red-400 transition-colors"> <Trash2 size={18}/> </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {showDeleteModal && accountToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`${themeColors.cardBg} p-6 rounded-lg shadow-xl max-w-sm w-full`}>
-            <div className="flex items-center mb-4"> <AlertTriangle size={24} className="text-red-500 mr-3"/> <h4 className={`text-lg font-semibold ${themeColors.text}`}>Account Verwijderen</h4> </div>
-            <p className={`${themeColors.cardText} text-sm mb-6`}> Weet u zeker dat u het account "{accountToDelete.name}" wilt verwijderen? Alle bijbehorende trades blijven bestaan maar zijn niet meer gekoppeld. Deze actie kan niet ongedaan worden gemaakt. </p>
-            <div className="flex justify-end space-x-3">
-              <button onClick={() => { setShowDeleteModal(false); setAccountToDelete(null); }} className={`px-4 py-2 text-sm rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80 transition-opacity`} > Annuleren </button>
-              <button onClick={confirmDeleteAccount} className="px-4 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors" > Verwijder </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );};
-
-const UserAccountStatusList = ({ themeColors, allTrades, onSelectAccountTrades }) => {
-  const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [expandedAccountId, setExpandedAccountId] = useState(null);
-
-  useEffect(() => {
-    const dataViewerId = ADMIN_DATA_OWNER_ID; // Public data is always admin's data
-    if (!dataViewerId) {
-        setLoading(false);
-        setAccounts([]);
-        return;
-    }
-    const accountsCollectionPath = `/artifacts/${appId}/users/${dataViewerId}/accounts`;
-    const q = query(collection(db, accountsCollectionPath), orderBy("createdAt", "desc")); // Order by creation
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const accs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setAccounts(accs);
-        setLoading(false);
-    }, (error) => {
-        console.error("Fout bij ophalen accounts (UserAccountStatusList): ", error);
-        setLoading(false);
-        setAccounts([]);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const toggleDetails = (accountId) => { setExpandedAccountId(prevId => (prevId === accountId ? null : accountId)); };
-
-  const getAccountDetails = (account) => {
-    const tradesForAccount = allTrades.filter(trade => trade.accountId === account.id);
-    const totalPnlForAccount = tradesForAccount.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
-    const currentBalance = (account.startKapitaal || 0) + totalPnlForAccount;
-    const pnlSinceStart = currentBalance - (account.startKapitaal || 0);
-    return { tradeCount: tradesForAccount.length, totalPnl: totalPnlForAccount, currentBalance: currentBalance, pnlSinceStart: pnlSinceStart };
-  };
-
-  if (loading) return <p className={`${themeColors.subtleText} text-center py-4`}>Account status laden...</p>;
-  if (accounts.length === 0) return <p className={`${themeColors.subtleText} text-center py-4`}>Nog geen accounts beschikbaar.</p>;
-
-  return (
-    <div className={`${themeColors.cardBg} p-4 sm:p-6 rounded-xl shadow-lg mt-8`}>
-      <h3 className={`text-lg sm:text-xl font-semibold mb-4 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Account Status <em className={`text-xs ${themeColors.subtleText} opacity-75`}>Hier kan u ook bij staan!</em></h3>
-      <ul className="space-y-3">
-        {accounts.map((acc) => {
-          if (!acc || typeof acc.id !== 'string' || acc.id.trim() === '') { console.warn("UserAccountStatusList: Ongeldig account of account ID", acc); return null;}
-          const details = getAccountDetails(acc);
-          return (
-            <li key={acc.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
-              <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 `}>
-                <div className="flex-grow mb-2 sm:mb-0">
-                  <span className={`${themeColors.cardText} font-semibold`}>{acc.name}</span>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center text-xs mt-1">
-                    <span className={`${themeColors.subtleText} mr-2 mb-1 sm:mb-0`}>Huidig: {details.currentBalance.toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })}</span>
-                    <span className={`${details.pnlSinceStart >= 0 ? themeColors.textPositive : themeColors.textNegative}`}> {details.pnlSinceStart >= 0 ? '+' : ''}{details.pnlSinceStart.toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })} </span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 self-start sm:self-center">
-                  <span className={`text-xs ${themeColors.subtleText} mr-2`}>Trades: {details.tradeCount}</span>
-                  <button onClick={() => onSelectAccountTrades(acc.id)} className={`px-2 py-1 text-xs rounded-md ${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80 transition-colors`} > Bekijk </button>
-                  <button onClick={() => toggleDetails(acc.id)} className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded`}> {expandedAccountId === acc.id ? <ChevronUp size={16} sm:size={18}/> : <ChevronDown size={16} sm:size={18}/>} </button>
-                </div>
-              </div>
-              {expandedAccountId === acc.id && (
-                <div className={`p-3 border-t ${themeColors.borderColor} bg-opacity-50 ${themeColors.inputBg} text-xs sm:text-sm`}>
-                  <p className={`${themeColors.cardText}`}>Startkapitaal: <span className="font-semibold">{(acc.startKapitaal || 0).toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })}</span></p>
-                  <p className={`${themeColors.cardText}`}>P/L van Trades: <span className={`font-semibold ${details.totalPnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>{details.totalPnl.toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })}</span></p>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div> );
-};
-
-const KPI_Card = memo(({ title, value, icon, unit = '', themeColors, isPnl = false }) => {
-  const IconComponent = icon;
-  let valueColor = themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900';
-  if (isPnl) {
-    // Assuming value is already a number or a string that parseFloat can handle after basic cleaning.
-    // If 'value' is a pre-formatted currency string like "$1,234.56", more robust parsing might be needed.
-    // For now, this handles numbers and simple numeric strings.
-    const numericValue = parseFloat(String(value).replace(/[^0-9.,-]+/g, '').replace(',', '.'));
-    if (!isNaN(numericValue)) {
-      if (numericValue > 0) valueColor = themeColors.textPositive;
-      else if (numericValue < 0) valueColor = themeColors.textNegative;
-    }
-  }
-  return (
-    <div className={`${themeColors.cardBg} p-4 sm:p-5 md:p-6 rounded-xl shadow-lg flex items-center space-x-3 sm:space-x-4 transition-all duration-300 hover:shadow-blue-500/20`}>
-      <div className={`p-2 sm:p-3 rounded-full ${themeColors.primaryAccentBg.replace('bg-','bg-opacity-20')} ${themeColors.primaryAccent}`}>
-        {IconComponent && <IconComponent size={20} sm:size={24} />}
-      </div>
-      <div>
-        <p className={`text-xs sm:text-sm ${themeColors.subtleText}`}>{title}</p>
-        <p className={`text-xl sm:text-2xl font-bold ${valueColor}`}>{value}{unit}</p>
-      </div>
-    </div> );
-});
-
-const SimpleEquityChart = memo(({ data, themeColors }) => {
-  if (!data || data.length === 0) { return <p className={`${themeColors.subtleText} text-center py-10`}>Onvoldoende data voor grafiek.</p>; }
-  if (data.length === 1 && data[0].date === "Start") { return <p className={`${themeColors.subtleText} text-center py-10`}>Voeg trades toe om de equity curve te zien.</p>; }
-
-  const chartHeight = 380;
-  const chartWidth = 750;
-  const yPadding = 70;
-  const xPadding = 90;
-
-  const equities = data.map(p => p.equity);
-  let minEquity = Math.min(...equities);
-  let maxEquity = Math.max(...equities);
-
-  const dataRange = maxEquity - minEquity;
-  const visualBuffer = dataRange === 0 ? 100 : dataRange * 0.20;
-  let visualMinEquity = minEquity - visualBuffer;
-  let visualMaxEquity = maxEquity + visualBuffer;
-
-  if (minEquity >= 0 && visualMinEquity < 0) {
-    visualMinEquity = 0;
-  }
-
-  if (visualMaxEquity - visualMinEquity < 250 && dataRange === 0) {
-      visualMinEquity = equities[0] - 125;
-      visualMaxEquity = equities[0] + 125;
-  } else if (visualMaxEquity - visualMinEquity < 250) {
-      const mid = (visualMaxEquity + visualMinEquity) / 2;
-      visualMinEquity = mid - 125;
-      visualMaxEquity = mid + 125;
-  }
-
-  visualMinEquity = Math.floor(visualMinEquity / 50) * 50;
-  visualMaxEquity = Math.ceil(visualMaxEquity / 50) * 50;
-
-  const visualRange = visualMaxEquity - visualMinEquity === 0 ? 250 : visualMaxEquity - visualMinEquity;
-
-  const linePath = (points) => {
-    if (points.length === 0) return "";
-    let path = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const x_mid = (points[i].x + points[i + 1].x) / 2;
-      const cp_x1 = (x_mid + points[i].x) / 2;
-      const cp_x2 = (x_mid + points[i + 1].x) / 2;
-      path += ` C ${cp_x1},${points[i].y} ${cp_x2},${points[i+1].y} ${points[i+1].x},${points[i+1].y}`;
-    }
-    return path;
-  };
-
-  const chartPoints = data.map((point, index) => {
-    const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * xPadding) + xPadding;
-    const y = chartHeight - yPadding - ((point.equity - visualMinEquity) / visualRange) * (chartHeight - 2 * yPadding);
-    return {x, y};
-  });
-
-  const areaPath = `M ${xPadding},${chartHeight - yPadding} L ${chartPoints.map(p => `${p.x},${p.y}`).join(' L ')} L ${chartWidth - xPadding},${chartHeight - yPadding} Z`;
-
-  const yAxisLabels = [];
-  const numYLabels = 5;
-  const yStep = Math.max(50, Math.ceil(visualRange / (numYLabels -1) / 50) * 50); // Ensure step is at least 50
-  let currentYLabel = Math.floor(visualMinEquity / yStep) * yStep;
-  if (currentYLabel < visualMinEquity && visualMinEquity !== 0) currentYLabel += yStep;
-  if (visualMinEquity === 0 && currentYLabel < 0) currentYLabel = 0;
-
-  for (let val = currentYLabel; val <= visualMaxEquity + yStep/2 ; val += yStep) {
-      if (val >= visualMinEquity - yStep/2) {
-          const yPos = chartHeight - yPadding - ((val - visualMinEquity) / visualRange) * (chartHeight - 2 * yPadding);
-          yAxisLabels.push({ value: val.toLocaleString('nl-NL', { style: 'decimal', minimumFractionDigits:0, maximumFractionDigits:0 }), y: yPos });
-      }
-  }
-  if (yAxisLabels.length === 0 && visualRange > 0) {
-      yAxisLabels.push({ value: visualMinEquity.toLocaleString('nl-NL', { style: 'decimal', minimumFractionDigits:0, maximumFractionDigits:0 }), y: chartHeight - yPadding });
-      yAxisLabels.push({ value: visualMaxEquity.toLocaleString('nl-NL', { style: 'decimal', minimumFractionDigits:0, maximumFractionDigits:0 }), y: yPadding });
-  }
-
-  const xAxisLabels = [];
-  if (data.length > 0) {
-    const firstPointDate = data[0].date === "Start" && data.length > 1 ? data[1].date : data[0].date;
-    xAxisLabels.push({ text: firstPointDate, x: xPadding });
-    if (data.length > 2) {
-      const midIndex = Math.floor(data.length / 2);
-      if (data[midIndex].date !== firstPointDate && data[midIndex].date !== data[data.length -1].date) {
-        xAxisLabels.push({ text: data[midIndex].date, x: chartWidth / 2 });
-      }
-    }
-    if (data.length > 1 && data[data.length - 1].date !== firstPointDate) {
-      xAxisLabels.push({ text: data[data.length - 1].date, x: chartWidth - xPadding });
-    }
-  }
-
-  return (
-    <div className="w-full overflow-x-auto flex justify-center">
-      <svg width={chartWidth} height={chartHeight + 60} viewBox={`0 0 ${chartWidth} ${chartHeight + 60}`} className="max-w-full font-inter">
-        <defs>
-          <linearGradient id="equityGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={themeColors.chartGradientFrom} />
-            <stop offset="100%" stopColor={themeColors.chartGradientTo} />
-          </linearGradient>
-        </defs>
-        <text x={xPadding / 3 - 15} y={chartHeight / 2} transform={`rotate(-90 ${xPadding/3 - 15} ${chartHeight/2})`} textAnchor="middle" className={`text-sm font-semibold ${themeColors.chartLabel}`}> Equity ($) </text>
-        <text x={chartWidth - xPadding + 30} y={chartHeight + yPadding } textAnchor="end" className={`text-sm font-semibold ${themeColors.chartLabel}`}> Datum </text>
-
-        {yAxisLabels.map((label, i) => (
-          <g key={`y-axis-group-${i}`}>
-            <line x1={xPadding} y1={label.y} x2={chartWidth - xPadding} y2={label.y} className={themeColors.chartGrid} strokeOpacity="0.3" strokeDasharray="4 4" />
-            <text x={xPadding - 15} y={label.y + 4} textAnchor="end" className={`text-xs ${themeColors.chartAxis}`}>${label.value}</text>
-          </g>
-        ))}
-        {xAxisLabels.map((label, i) => (
-          <text key={`x-label-${i}`} x={label.x} y={chartHeight - yPadding + 35} textAnchor={i === 0 ? "start" : i === xAxisLabels.length -1 && xAxisLabels.length > 1 ? "end" : "middle"} className={`text-xs ${themeColors.chartAxis}`}>{label.text}</text>
-        ))}
-
-        {chartPoints.length > 1 && (
-          <>
-            <path d={areaPath} fill="url(#equityGradient)" opacity="0.6" />
-            <path d={linePath(chartPoints)} fill="none" className={themeColors.chartLine} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx={chartPoints[chartPoints.length-1].x} cy={chartPoints[chartPoints.length-1].y} r="4.5" className={themeColors.chartPoint} stroke={themeColors.cardBg} strokeWidth="2.5"/>
-          </>
-        )}
-      </svg>
-    </div>
-  );});
-
 const DashboardNavbar = ({ onToggleTheme, currentTheme, themeColors, onNavigateToTimeline, onNavigateToContact, isAdmin, onAdminLogout, onTabChange, activeTab, onNavigateToLanding }) => {
     const baseNavLinks = [
         { name: 'Overzicht', icon: LayoutDashboard, action: () => onTabChange('overview'), tabId: 'overview' },
-        { name: 'Mijn Reis', icon: User, action: onNavigateToTimeline, tabId: 'timeline' }, // Not a tab for onTabChange
-        { name: 'Contact', icon: Send, action: onNavigateToContact, tabId: 'contact' }, // Not a tab for onTabChange
+        { name: 'Mijn Reis', icon: User, action: onNavigateToTimeline, tabId: 'timeline' },
+        { name: 'Contact', icon: Send, action: onNavigateToContact, tabId: 'contact' },
     ];
     if (isAdmin) { baseNavLinks.push({ name: 'Admin', icon: ShieldCheck, action: () => onTabChange('admin'), tabId: 'admin' }); }
 
@@ -997,7 +502,456 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId }) =
     );
 };
 
-const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors, onNavigateToTimeline, onNavigateToContact, isAdmin, onAdminLogout, navigateTo }) => {
+const AdminTradeInputForm = ({ themeColors, userId, accounts }) => {
+  const [pair, setPair] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tradeTime, setTradeTime] = useState(new Date().toTimeString().slice(0,5));
+  const [riskAmount, setRiskAmount] = useState('');
+  const [rr, setRr] = useState('');
+  const [outcome, setOutcome] = useState('win');
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageUrlOptional, setImageUrlOptional] = useState('');
+  const [reasoning, setReasoning] = useState('');
+  const [mood, setMood] = useState(null);
+  const [feedback, setFeedback] = useState('');
+  const [optionalImageFile, setOptionalImageFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (file && userId && userId === ADMIN_DATA_OWNER_ID) {
+        setOptionalImageFile(file);
+        setUploading(true);
+        setFeedback('Afbeelding uploaden...');
+        const filePath = `artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/tradeImages/${Date.now()}_${file.name}`;
+        const storageRefInstance = ref(storage, filePath);
+        const uploadTask = uploadBytesResumable(storageRefInstance, file);
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setFeedback(`Uploaden: ${Math.round(progress)}%`);
+            },
+            (error) => {
+                console.error("Upload fout:", error);
+                setFeedback("Fout bij uploaden afbeelding.");
+                setUploading(false);
+                setOptionalImageFile(null);
+                if(fileInputRef.current) fileInputRef.current.value = "";
+            },
+            () => {
+                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                    setImageUrlOptional(downloadURL);
+                    setFeedback('Afbeelding succesvol geüpload!');
+                    setUploading(false);
+                });
+            }
+        );
+    } else {
+        setFeedback("Fout: Admin rechten vereist voor file upload.");
+    }
+  };
+
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (userId !== ADMIN_DATA_OWNER_ID) {
+        setFeedback("Fout: Geen admin rechten om trades toe te voegen.");
+        return;
+    }
+    if (!selectedAccountId) { setFeedback("Selecteer een account."); return; }
+    if (!mood) { setFeedback("Selecteer een stemming voor de trade."); return; }
+    const risk = parseFloat(riskAmount);
+    const rewardRatio = parseFloat(rr);
+    if (isNaN(risk) || isNaN(rewardRatio) || risk <= 0) { setFeedback("Ongeldige invoer voor risico of RR."); return; }
+    let pnl = outcome === 'win' ? risk * rewardRatio : -risk;
+
+    const newTrade = {
+        userId: ADMIN_DATA_OWNER_ID,
+        accountId: selectedAccountId,
+        pair,
+        date: Timestamp.fromDate(new Date(`${date}T${tradeTime || '00:00'}`)),
+        tradeTime: tradeTime || null,
+        riskAmount: risk,
+        rr: rewardRatio,
+        outcome,
+        pnl,
+        imageUrl,
+        imageUrlOptional,
+        reasoning,
+        mood,
+        createdAt: serverTimestamp()
+    };
+    try {
+      const tradesCollectionPath = `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/trades`;
+      await addDoc(collection(db, tradesCollectionPath), newTrade);
+      setFeedback("Trade succesvol toegevoegd!");
+      setPair(''); setDate(new Date().toISOString().split('T')[0]); setTradeTime(new Date().toTimeString().slice(0,5)); setRiskAmount(''); setRr(''); setOutcome('win'); setSelectedAccountId(''); setImageUrl(''); setImageUrlOptional(''); setReasoning(''); setMood(null); setOptionalImageFile(null);
+      if(fileInputRef.current) fileInputRef.current.value = "";
+      setTimeout(() => setFeedback(''), 3000);
+    } catch (error) { console.error("Fout bij toevoegen trade: ", error); setFeedback("Fout bij toevoegen trade. Controleer Firestore regels en console."); }
+  };
+  const inputClass = `w-full p-3 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors`;
+  const labelClass = `block text-sm font-medium mb-1 ${themeColors.subtleText}`;
+
+  return (
+    <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg`}>
+      <h3 className={`text-xl font-semibold mb-6 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Nieuwe Trade Toevoegen</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:space-x-4">
+            <div className="flex-1 mb-4 sm:mb-0"><label htmlFor="pair" className={labelClass}>Handelspaar (bijv. EURUSD)</label><input type="text" id="pair" value={pair} onChange={e => setPair(e.target.value)} className={inputClass} required /></div>
+            <div className="flex space-x-2 items-end">
+                <button type="button" onClick={() => setPair('MNQ')} className={`px-3 py-2 text-xs rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80`}>MNQ</button>
+                <button type="button" onClick={() => setPair('NQ')} className={`px-3 py-2 text-xs rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80`}>NQ</button>
+            </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label htmlFor="date" className={labelClass}>Datum</label><input type="date" id="date" value={date} onChange={e => setDate(e.target.value)} className={inputClass} required /></div>
+            <div><label htmlFor="tradeTime" className={labelClass}>Tijd</label><input type="time" id="tradeTime" value={tradeTime} onChange={e => setTradeTime(e.target.value)} className={inputClass} /></div>
+        </div>
+        <div><label htmlFor="riskAmount" className={labelClass}>Risico in $</label><input type="number" step="0.01" id="riskAmount" value={riskAmount} onChange={e => setRiskAmount(e.target.value)} className={inputClass} placeholder="bijv. 100" required /></div>
+        <div><label htmlFor="rr" className={labelClass}>Behaalde Risk/Reward Ratio (RR)</label><input type="number" step="0.01" id="rr" value={rr} onChange={e => setRr(e.target.value)} className={inputClass} placeholder="bijv. 2.5" required /></div>
+        <div> <label className={labelClass}>Uitkomst</label> <select id="outcome" value={outcome} onChange={e => setOutcome(e.target.value)} className={inputClass}> <option key="outcome-win" value="win">Winst</option> <option key="outcome-loss" value="loss">Verlies</option> </select> </div>
+        <div> <label htmlFor="account" className={labelClass}>Account</label> <select id="account" value={selectedAccountId} onChange={e => setSelectedAccountId(e.target.value)} className={inputClass} required> <option key="select-account-placeholder" value="">Selecteer Account</option> {accounts.map((acc, index) => { if (!acc || typeof acc.id !== 'string' || acc.id.trim() === '') { console.warn("AdminTradeInputForm: Ongeldig account of account ID bij index", index, acc); return null; } return <option key={`${acc.id}-${index}`} value={acc.id}>{acc.name}</option>; })} </select> </div>
+        <div><label htmlFor="imageUrl" className={labelClass}>Image URL (TradingView)</label><input type="url" id="imageUrl" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className={inputClass} placeholder="https://www.tradingview.com/chart/..." /></div>
+        <div>
+            <label htmlFor="imageUrlOptionalFile" className={labelClass}>Optionele Afbeelding (bijv. Order Bewijs)</label>
+            <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${themeColors.borderColor} border-dashed rounded-md`}>
+                <div className="space-y-1 text-center">
+                    <UploadCloud className={`mx-auto h-12 w-12 ${themeColors.subtleText}`} />
+                    <div className="flex text-sm text-gray-600">
+                        <label htmlFor="imageUrlOptionalFile" className={`relative cursor-pointer ${themeColors.cardBg} rounded-md font-medium ${themeColors.primaryAccent} hover:text-opacity-80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500`}>
+                            <span>Upload een bestand</span>
+                            <input id="imageUrlOptionalFile" name="imageUrlOptionalFile" type="file" className="sr-only" accept="image/*" onChange={handleFileChange} ref={fileInputRef} />
+                        </label>
+                    </div>
+                    <p className={`text-xs ${themeColors.subtleText}`}>PNG, JPG, GIF tot 10MB</p>
+                    {optionalImageFile && !uploading && <p className={`text-xs ${themeColors.primaryAccent} mt-1`}>Geselecteerd: {optionalImageFile.name}</p>}
+                    {uploading && <p className={`text-xs ${themeColors.primaryAccent} mt-1 animate-pulse`}>{feedback || 'Uploaden...'}</p>}
+                </div>
+            </div>
+        </div>
+        <div><label htmlFor="reasoning" className={labelClass}>Onderbouwing</label><textarea id="reasoning" rows="4" value={reasoning} onChange={e => setReasoning(e.target.value)} className={inputClass} placeholder="Denkgedachte, analyse..."></textarea></div>
+        <div> <label className={labelClass}>Stemming (verplicht)</label> <div className="flex space-x-2 mt-1"> {[1, 2, 3, 4, 5].map(value => { const moodConfigArr = [ { icon: Frown, color: themeColors.mood[0], bgColor: themeColors.moodBg[0] }, { icon: Frown, color: themeColors.mood[1], bgColor: themeColors.moodBg[1] }, { icon: Meh, color: themeColors.mood[2], bgColor: themeColors.moodBg[2] }, { icon: Smile, color: themeColors.mood[3], bgColor: themeColors.moodBg[3] }, { icon: Smile, color: themeColors.mood[4], bgColor: themeColors.moodBg[4] }]; const Icon = moodConfigArr[value-1].icon; return ( <button key={value} type="button" onClick={() => setMood(value)} className={`p-2 rounded-full transition-all duration-150 ${mood === value ? `${moodConfigArr[value-1].bgColor} ring-2 ${moodConfigArr[value-1].color.replace('text-','ring-')}` : `${themeColors.inputBg} hover:opacity-70`}`}> <Icon className={`${moodConfigArr[value-1].color}`} size={24} /> </button> ); })} </div> </div> <button type="submit" disabled={uploading} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors disabled:opacity-50`}> {uploading ? (feedback.startsWith("Uploaden:") ? feedback : 'Bezig met uploaden...') : 'Trade Opslaan'} </button> {feedback && !uploading && <p className={`mt-4 text-sm ${feedback.includes("succesvol") ? themeColors.primaryAccent : 'text-red-500'}`}>{feedback}</p>} </form> </div> );
+};
+
+const AdminAccountManagement = ({ themeColors, userId, onAccountAdded, accounts, setAccounts: updateParentAccounts }) => {
+  const [accountName, setAccountName] = useState('');
+  const [startKapitaal, setStartKapitaal] = useState('');
+  const [accountStatus, setAccountStatus] = useState('active');
+  const [feedback, setFeedback] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (userId !== ADMIN_DATA_OWNER_ID) { setFeedback("Fout: Geen admin rechten om accounts toe te voegen."); return; }
+    if (!accountName.trim()) { setFeedback("Account naam mag niet leeg zijn."); return; }
+    const kapitaalNum = parseFloat(startKapitaal);
+    if (isNaN(kapitaalNum) || kapitaalNum < 0) { setFeedback("Ongeldig startkapitaal ingevoerd."); return; }
+
+    const newAccount = { userId: ADMIN_DATA_OWNER_ID, name: accountName, startKapitaal: kapitaalNum, status: accountStatus, createdAt: serverTimestamp() };
+    try {
+      const accountsCollectionPath = `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/accounts`;
+      const docRef = await addDoc(collection(db, accountsCollectionPath), newAccount);
+      setFeedback(`Account "${accountName}" succesvol toegevoegd!`);
+      const addedAccount = { id: docRef.id, ...newAccount, createdAt: new Date() }; 
+      if(onAccountAdded) onAccountAdded(addedAccount); 
+      setAccountName(''); setStartKapitaal(''); setAccountStatus('active');
+      setTimeout(() => setFeedback(''), 3000);
+    } catch (error) { console.error("Fout bij toevoegen account: ", error); setFeedback("Fout bij toevoegen account. Controleer Firestore regels en console."); }
+  };
+
+  const handleDeleteAttempt = (account) => {
+    setAccountToDelete(account);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!accountToDelete || userId !== ADMIN_DATA_OWNER_ID) return;
+    try {
+      const accountDocRef = doc(db, `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/accounts`, accountToDelete.id);
+      await deleteDoc(accountDocRef);
+      if (updateParentAccounts) { 
+        updateParentAccounts(prevAccounts => prevAccounts.filter(acc => acc.id !== accountToDelete.id));
+      }
+      setFeedback(`Account "${accountToDelete.name}" succesvol verwijderd.`);
+      setShowDeleteModal(false); setAccountToDelete(null);
+      setTimeout(() => setFeedback(''), 3000);
+    } catch (error) { console.error("Fout bij verwijderen account:", error); setFeedback("Fout bij verwijderen account."); setShowDeleteModal(false); setAccountToDelete(null); }
+  };
+
+  const inputClass = `w-full p-3 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors`;
+  const labelClass = `block text-sm font-medium mb-1 ${themeColors.subtleText}`;
+
+  return (
+    <>
+      <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}>
+        <h3 className={`text-xl font-semibold mb-6 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Account Toevoegen</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div><label htmlFor="accountName" className={labelClass}>Account Naam</label><input type="text" id="accountName" value={accountName} onChange={e => setAccountName(e.target.value)} className={inputClass} placeholder="bijv. Persoonlijk EUR" required /></div>
+          <div><label htmlFor="startKapitaal" className={labelClass}>Startkapitaal in $</label><input type="number" step="0.01" id="startKapitaal" value={startKapitaal} onChange={e => setStartKapitaal(e.target.value)} className={inputClass} placeholder="bijv. 10000" required /></div>
+          <div> <label htmlFor="accountStatus" className={labelClass}>Status</label> <select id="accountStatus" value={accountStatus} onChange={e => setAccountStatus(e.target.value)} className={inputClass}> <option key="status-active" value="active">Actief</option> <option key="status-inactive" value="inactive">Inactief</option> </select> </div>
+          <button type="submit" className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors`}>Account Opslaan</button>
+          {feedback && <p className={`mt-4 text-sm ${feedback.includes("succesvol") ? themeColors.primaryAccent : 'text-red-500'}`}>{feedback}</p>}
+        </form>
+      </div>
+      {accounts && accounts.length > 0 && (
+        <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}>
+          <h4 className={`text-lg font-semibold mb-4 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Bestaande Accounts Beheren</h4>
+          <ul className="space-y-2">
+            {accounts.map((acc) => ( 
+              <li key={acc.id} className={`flex justify-between items-center p-3 rounded-md ${themeColors.subtleBg}`}>
+                <div>
+                  <p className={themeColors.cardText}>{acc.name}</p>
+                  <p className={`text-xs ${themeColors.subtleText}`}>Start: ${(acc.startKapitaal || 0).toLocaleString('nl-NL', {minimumFractionDigits: 2, maximumFractionDigits: 2})} | Aangemaakt: {acc.createdAt && typeof acc.createdAt.toDate === 'function' ? acc.createdAt.toDate().toLocaleDateString('nl-NL') : (acc.createdAt instanceof Date ? acc.createdAt.toLocaleDateString('nl-NL') : 'N/A')}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${acc.status === 'active' ? 'bg-green-500/30 text-green-300' : 'bg-red-500/30 text-red-300'}`}>{acc.status}</span>
+                  <button onClick={() => handleDeleteAttempt(acc)} className="p-1 text-red-500 hover:text-red-400 transition-colors"> <Trash2 size={18}/> </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {showDeleteModal && accountToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeColors.cardBg} p-6 rounded-lg shadow-xl max-w-sm w-full`}>
+            <div className="flex items-center mb-4"> <AlertTriangle size={24} className="text-red-500 mr-3"/> <h4 className={`text-lg font-semibold ${themeColors.text}`}>Account Verwijderen</h4> </div>
+            <p className={`${themeColors.cardText} text-sm mb-6`}> Weet u zeker dat u het account "{accountToDelete.name}" wilt verwijderen? Alle bijbehorende trades blijven bestaan maar zijn niet meer gekoppeld. Deze actie kan niet ongedaan worden gemaakt. </p>
+            <div className="flex justify-end space-x-3">
+              <button onClick={() => { setShowDeleteModal(false); setAccountToDelete(null); }} className={`px-4 py-2 text-sm rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80 transition-opacity`} > Annuleren </button>
+              <button onClick={confirmDeleteAccount} className="px-4 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors" > Verwijder </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );};
+
+const UserAccountStatusList = ({ themeColors, allTrades, onSelectAccountTrades }) => {
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedAccountId, setExpandedAccountId] = useState(null);
+
+  useEffect(() => {
+    const dataViewerId = ADMIN_DATA_OWNER_ID; 
+    if (!dataViewerId) {
+        setLoading(false);
+        setAccounts([]);
+        return;
+    }
+    const accountsCollectionPath = `/artifacts/${appId}/users/${dataViewerId}/accounts`;
+    const q = query(collection(db, accountsCollectionPath), orderBy("createdAt", "desc")); 
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const accs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAccounts(accs);
+        setLoading(false);
+    }, (error) => {
+        console.error("Fout bij ophalen accounts (UserAccountStatusList): ", error);
+        setLoading(false);
+        setAccounts([]);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const toggleDetails = (accountId) => { setExpandedAccountId(prevId => (prevId === accountId ? null : accountId)); };
+
+  const getAccountDetails = (account) => {
+    const tradesForAccount = allTrades.filter(trade => trade.accountId === account.id);
+    const totalPnlForAccount = tradesForAccount.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+    const currentBalance = (account.startKapitaal || 0) + totalPnlForAccount;
+    const pnlSinceStart = currentBalance - (account.startKapitaal || 0);
+    return { tradeCount: tradesForAccount.length, totalPnl: totalPnlForAccount, currentBalance: currentBalance, pnlSinceStart: pnlSinceStart };
+  };
+
+  if (loading) return <p className={`${themeColors.subtleText} text-center py-4`}>Account status laden...</p>;
+  if (accounts.length === 0) return <p className={`${themeColors.subtleText} text-center py-4`}>Nog geen accounts beschikbaar.</p>;
+
+  return (
+    <div className={`${themeColors.cardBg} p-4 sm:p-6 rounded-xl shadow-lg mt-8`}>
+      <h3 className={`text-lg sm:text-xl font-semibold mb-4 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Account Status <em className={`text-xs ${themeColors.subtleText} opacity-75`}>Hier kan u ook bij staan!</em></h3>
+      <ul className="space-y-3">
+        {accounts.map((acc) => {
+          if (!acc || typeof acc.id !== 'string' || acc.id.trim() === '') { console.warn("UserAccountStatusList: Ongeldig account of account ID", acc); return null;}
+          const details = getAccountDetails(acc);
+          return (
+            <li key={acc.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
+              <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 `}>
+                <div className="flex-grow mb-2 sm:mb-0">
+                  <span className={`${themeColors.cardText} font-semibold`}>{acc.name}</span>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center text-xs mt-1">
+                    <span className={`${themeColors.subtleText} mr-2 mb-1 sm:mb-0`}>Huidig: {details.currentBalance.toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })}</span>
+                    <span className={`${details.pnlSinceStart >= 0 ? themeColors.textPositive : themeColors.textNegative}`}> {details.pnlSinceStart >= 0 ? '+' : ''}{details.pnlSinceStart.toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })} </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 self-start sm:self-center">
+                  <span className={`text-xs ${themeColors.subtleText} mr-2`}>Trades: {details.tradeCount}</span>
+                  <button onClick={() => onSelectAccountTrades(acc.id)} className={`px-2 py-1 text-xs rounded-md ${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80 transition-colors`} > Bekijk </button>
+                  <button onClick={() => toggleDetails(acc.id)} className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded`}> {expandedAccountId === acc.id ? <ChevronUp size={16} sm:size={18}/> : <ChevronDown size={16} sm:size={18}/>} </button>
+                </div>
+              </div>
+              {expandedAccountId === acc.id && (
+                <div className={`p-3 border-t ${themeColors.borderColor} bg-opacity-50 ${themeColors.inputBg} text-xs sm:text-sm`}>
+                  <p className={`${themeColors.cardText}`}>Startkapitaal: <span className="font-semibold">{(acc.startKapitaal || 0).toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })}</span></p>
+                  <p className={`${themeColors.cardText}`}>P/L van Trades: <span className={`font-semibold ${details.totalPnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>{details.totalPnl.toLocaleString('nl-NL', { style: 'currency', currency: 'USD' })}</span></p>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div> );
+};
+
+const KPI_Card = memo(({ title, value, icon, unit = '', themeColors, isPnl = false }) => {
+  const IconComponent = icon;
+  let valueColor = themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900';
+  if (isPnl) {
+    const numericValue = parseFloat(String(value).replace(/[^0-9.,-]+/g, '').replace(',', '.'));
+    if (!isNaN(numericValue)) {
+      if (numericValue > 0) valueColor = themeColors.textPositive;
+      else if (numericValue < 0) valueColor = themeColors.textNegative;
+    }
+  }
+  return (
+    <div className={`${themeColors.cardBg} p-4 sm:p-5 md:p-6 rounded-xl shadow-lg flex items-center space-x-3 sm:space-x-4 transition-all duration-300 hover:shadow-blue-500/20`}>
+      <div className={`p-2 sm:p-3 rounded-full ${themeColors.primaryAccentBg.replace('bg-','bg-opacity-20')} ${themeColors.primaryAccent}`}>
+        {IconComponent && <IconComponent size={20} sm:size={24} />}
+      </div>
+      <div>
+        <p className={`text-xs sm:text-sm ${themeColors.subtleText}`}>{title}</p>
+        <p className={`text-xl sm:text-2xl font-bold ${valueColor}`}>{value}{unit}</p>
+      </div>
+    </div> );
+});
+
+const SimpleEquityChart = memo(({ data, themeColors }) => {
+  if (!data || data.length === 0) { return <p className={`${themeColors.subtleText} text-center py-10`}>Onvoldoende data voor grafiek.</p>; }
+  if (data.length === 1 && data[0].date === "Start") { return <p className={`${themeColors.subtleText} text-center py-10`}>Voeg trades toe om de equity curve te zien.</p>; }
+
+  const chartHeight = 380;
+  const chartWidth = 750;
+  const yPadding = 70;
+  const xPadding = 90;
+
+  const equities = data.map(p => p.equity);
+  let minEquity = Math.min(...equities);
+  let maxEquity = Math.max(...equities);
+
+  const dataRange = maxEquity - minEquity;
+  const visualBuffer = dataRange === 0 ? 100 : dataRange * 0.20;
+  let visualMinEquity = minEquity - visualBuffer;
+  let visualMaxEquity = maxEquity + visualBuffer;
+
+  if (minEquity >= 0 && visualMinEquity < 0) {
+    visualMinEquity = 0;
+  }
+
+  if (visualMaxEquity - visualMinEquity < 250 && dataRange === 0) {
+      visualMinEquity = equities[0] - 125;
+      visualMaxEquity = equities[0] + 125;
+  } else if (visualMaxEquity - visualMinEquity < 250) {
+      const mid = (visualMaxEquity + visualMinEquity) / 2;
+      visualMinEquity = mid - 125;
+      visualMaxEquity = mid + 125;
+  }
+
+  visualMinEquity = Math.floor(visualMinEquity / 50) * 50;
+  visualMaxEquity = Math.ceil(visualMaxEquity / 50) * 50;
+
+  const visualRange = visualMaxEquity - visualMinEquity === 0 ? 250 : visualMaxEquity - visualMinEquity;
+
+  const linePath = (points) => {
+    if (points.length === 0) return "";
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const x_mid = (points[i].x + points[i + 1].x) / 2;
+      const cp_x1 = (x_mid + points[i].x) / 2;
+      const cp_x2 = (x_mid + points[i + 1].x) / 2;
+      path += ` C ${cp_x1},${points[i].y} ${cp_x2},${points[i+1].y} ${points[i+1].x},${points[i+1].y}`;
+    }
+    return path;
+  };
+
+  const chartPoints = data.map((point, index) => {
+    const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * xPadding) + xPadding;
+    const y = chartHeight - yPadding - ((point.equity - visualMinEquity) / visualRange) * (chartHeight - 2 * yPadding);
+    return {x, y};
+  });
+
+  const areaPath = `M ${xPadding},${chartHeight - yPadding} L ${chartPoints.map(p => `${p.x},${p.y}`).join(' L ')} L ${chartWidth - xPadding},${chartHeight - yPadding} Z`;
+
+  const yAxisLabels = [];
+  const numYLabels = 5;
+  const yStep = Math.max(50, Math.ceil(visualRange / (numYLabels -1) / 50) * 50);
+  let currentYLabel = Math.floor(visualMinEquity / yStep) * yStep;
+  if (currentYLabel < visualMinEquity && visualMinEquity !== 0) currentYLabel += yStep;
+  if (visualMinEquity === 0 && currentYLabel < 0) currentYLabel = 0;
+
+  for (let val = currentYLabel; val <= visualMaxEquity + yStep/2 ; val += yStep) {
+      if (val >= visualMinEquity - yStep/2) {
+          const yPos = chartHeight - yPadding - ((val - visualMinEquity) / visualRange) * (chartHeight - 2 * yPadding);
+          yAxisLabels.push({ value: val.toLocaleString('nl-NL', { style: 'decimal', minimumFractionDigits:0, maximumFractionDigits:0 }), y: yPos });
+      }
+  }
+  if (yAxisLabels.length === 0 && visualRange > 0) {
+      yAxisLabels.push({ value: visualMinEquity.toLocaleString('nl-NL', { style: 'decimal', minimumFractionDigits:0, maximumFractionDigits:0 }), y: chartHeight - yPadding });
+      yAxisLabels.push({ value: visualMaxEquity.toLocaleString('nl-NL', { style: 'decimal', minimumFractionDigits:0, maximumFractionDigits:0 }), y: yPadding });
+  }
+
+  const xAxisLabels = [];
+  if (data.length > 0) {
+    const firstPointDate = data[0].date === "Start" && data.length > 1 ? data[1].date : data[0].date;
+    xAxisLabels.push({ text: firstPointDate, x: xPadding });
+    if (data.length > 2) {
+      const midIndex = Math.floor(data.length / 2);
+      if (data[midIndex].date !== firstPointDate && data[midIndex].date !== data[data.length -1].date) {
+        xAxisLabels.push({ text: data[midIndex].date, x: chartWidth / 2 });
+      }
+    }
+    if (data.length > 1 && data[data.length - 1].date !== firstPointDate) {
+      xAxisLabels.push({ text: data[data.length - 1].date, x: chartWidth - xPadding });
+    }
+  }
+
+  return (
+    <div className="w-full overflow-x-auto flex justify-center">
+      <svg width={chartWidth} height={chartHeight + 60} viewBox={`0 0 ${chartWidth} ${chartHeight + 60}`} className="max-w-full font-inter">
+        <defs>
+          <linearGradient id="equityGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={themeColors.chartGradientFrom} />
+            <stop offset="100%" stopColor={themeColors.chartGradientTo} />
+          </linearGradient>
+        </defs>
+        <text x={xPadding / 3 - 15} y={chartHeight / 2} transform={`rotate(-90 ${xPadding/3 - 15} ${chartHeight/2})`} textAnchor="middle" className={`text-sm font-semibold ${themeColors.chartLabel}`}> Equity ($) </text>
+        <text x={chartWidth - xPadding + 30} y={chartHeight + yPadding } textAnchor="end" className={`text-sm font-semibold ${themeColors.chartLabel}`}> Datum </text>
+
+        {yAxisLabels.map((label, i) => (
+          <g key={`y-axis-group-${i}`}>
+            <line x1={xPadding} y1={label.y} x2={chartWidth - xPadding} y2={label.y} className={themeColors.chartGrid} strokeOpacity="0.3" strokeDasharray="4 4" />
+            <text x={xPadding - 15} y={label.y + 4} textAnchor="end" className={`text-xs ${themeColors.chartAxis}`}>${label.value}</text>
+          </g>
+        ))}
+        {xAxisLabels.map((label, i) => (
+          <text key={`x-label-${i}`} x={label.x} y={chartHeight - yPadding + 35} textAnchor={i === 0 ? "start" : i === xAxisLabels.length -1 && xAxisLabels.length > 1 ? "end" : "middle"} className={`text-xs ${themeColors.chartAxis}`}>{label.text}</text>
+        ))}
+
+        {chartPoints.length > 1 && (
+          <>
+            <path d={areaPath} fill="url(#equityGradient)" opacity="0.6" />
+            <path d={linePath(chartPoints)} fill="none" className={themeColors.chartLine} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={chartPoints[chartPoints.length-1].x} cy={chartPoints[chartPoints.length-1].y} r="4.5" className={themeColors.chartPoint} stroke={themeColors.cardBg} strokeWidth="2.5"/>
+          </>
+        )}
+      </svg>
+    </div>
+  );});
+
+const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors, onNavigateToTimeline, onNavigateToContact, userId, isAdmin, onAdminLogout, navigateTo }) => {
     const [kpiValues, setKpiValues] = useState({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 });
     const [accounts, setAccounts] = useState([]);
     const [activeMainTab, setActiveMainTab] = useState('overview');
@@ -1020,11 +974,12 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
             scrollToTrades();
         }, 100);
     };
+    
+    const dataFetchingUserId = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
 
     useEffect(() => {
-        const dataOwnerId = ADMIN_DATA_OWNER_ID;
-        if (dataOwnerId) {
-            const accountsPath = `/artifacts/${appId}/users/${dataOwnerId}/accounts`;
+        if (dataFetchingUserId) {
+            const accountsPath = `/artifacts/${appId}/users/${dataFetchingUserId}/accounts`;
             const q = query(collection(db, accountsPath), orderBy("createdAt", "desc"));
             const unsubAccounts = onSnapshot(q, (snap) => {
                 const fetchedAccounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1037,14 +992,14 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         } else {
             setAccounts([]);
         }
-    }, []);
+    }, [dataFetchingUserId]);
 
     useEffect(() => {
-        const dataOwnerId = ADMIN_DATA_OWNER_ID;
+        const dataOwnerIdForTrades = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
 
-        if (dataOwnerId && (selectedAccountFilterId === 'cumulative' || accounts.length > 0)) {
+        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 || isAdmin)) {
             setTradesLoading(true);
-            const tradesPath = `/artifacts/${appId}/users/${dataOwnerId}/trades`;
+            const tradesPath = `/artifacts/${appId}/users/${dataOwnerIdForTrades}/trades`;
             const tradesQuery = query(collection(db, tradesPath), orderBy("date", "asc"));
             const unsubTrades = onSnapshot(tradesQuery, (snapshot) => {
                 const fetchedTradesRaw = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
@@ -1117,12 +1072,12 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
                 setTradesLoading(false);
             }, (error) => { console.error("Fout bij ophalen trades: ", error); setTradesLoading(false); setAllTrades([]); });
             return () => unsubTrades();
-        } else if (!dataOwnerId) {
+        } else if (!dataOwnerIdForTrades) {
             setAccounts([]); setEquityCurveData([]); setAllTrades([]);
             setKpiValues({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 });
             setTradesLoading(false);
         }
-    }, [accounts, selectedAccountFilterId]);
+    }, [accounts, selectedAccountFilterId, isAdmin, userId]);
 
     useEffect(() => { if (!isAdmin && activeMainTab === 'admin') { setActiveMainTab('overview'); } }, [isAdmin, activeMainTab]);
 
@@ -1176,7 +1131,7 @@ const AdminLoginPage = ({ onSuccessfulAdminLogin, onBackToLanding, themeColors }
     } else {
       setError('Ongeldige pincode.');
       setPin(Array(5).fill(''));
-      inputRefs.current[0]?.focus();
+      if (inputRefs.current[0]) inputRefs.current[0].focus();
     }
   };
 
@@ -1253,10 +1208,10 @@ const Footer = memo(({themeColors}) => {
 // Main App Component
 const App = () => {
   const [currentView, setCurrentView] = useState('landing');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null); 
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [theme, setTheme] = useState('light');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); 
   const currentThemeColors = themes[theme];
 
   const navigateTo = (view) => {
@@ -1278,46 +1233,36 @@ const App = () => {
 
   useEffect(() => {
     const authListener = onAuthStateChanged(auth, async (user) => {
+      console.log("Auth state changed, Firebase user:", user);
       if (user) {
-        // If not already the PIN admin, set the Firebase user
         if (!(isAdmin && currentUser?.isPseudoAdmin && currentUser.uid === ADMIN_DATA_OWNER_ID)) {
             setCurrentUser(user);
         }
-
-        const userDocRef = doc(db, `/artifacts/${appId}/users/${user.uid}/profile`, 'info');
-        try {
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-                const profileData = userDocSnap.data();
-                // Only set theme from user profile if not PIN admin, or if PIN admin profile is being loaded
-                if (!isAdmin || (isAdmin && user.uid === ADMIN_DATA_OWNER_ID)) {
+        
+        if (user.uid !== ADMIN_DATA_OWNER_ID) { 
+            const userDocRef = doc(db, `/artifacts/${appId}/users/${user.uid}/profile`, 'info');
+            try {
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    const profileData = userDocSnap.data();
                     setTheme(profileData?.themePreference || 'light');
+                } else { 
+                     await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Gebruiker', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: false });
+                    setTheme('light');
                 }
-            } else if (user.uid !== ADMIN_DATA_OWNER_ID) {
-                // Create profile for new non-admin users
-                await setDoc(userDocRef, {
-                    email: user.email || 'anoniem',
-                    name: user.displayName || 'Gebruiker',
-                    createdAt: Timestamp.now(),
-                    themePreference: 'light',
-                    isAdmin: false
-                });
-                if (!isAdmin) setTheme('light'); // Set theme if not admin to avoid conflict
+            } catch (error) {
+                console.error("Fout bij ophalen/aanmaken gebruikersprofiel:", error);
             }
-        } catch (error) {
-            console.error("Fout bij ophalen/aanmaken gebruikersprofiel:", error);
         }
-
-      } else { // No Firebase user
-        if (typeof __initial_auth_token === 'undefined' || !__initial_auth_token) {
-          signInAnonymously(auth).catch(error => console.error("Anoniem inloggen mislukt:", error));
+      } else { 
+        if (typeof __initial_auth_token === 'undefined' || !__initial_auth_token) { 
+            signInAnonymously(auth).catch(error => console.error("Anoniem inloggen mislukt:", error)); 
         }
-        // If PIN admin is not active, clear current user.
-        if (!isAdmin) {
+        if (!isAdmin) { 
             setCurrentUser(null);
         }
-      }
-      setIsAuthReady(true);
+      } 
+      setIsAuthReady(true); 
     });
 
     const attemptCustomSignIn = async () => {
@@ -1338,7 +1283,7 @@ const App = () => {
     }
 
     return () => authListener();
-  }, [isAdmin]); // Re-run if isAdmin changes to handle auth state correctly after PIN admin logout
+  }, [isAdmin, currentUser?.isPseudoAdmin]); // Added currentUser.isPseudoAdmin to dependencies
 
   const toggleTheme = async () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -1351,8 +1296,7 @@ const App = () => {
             const userDocRef = doc(db, `/artifacts/${appId}/users/${uidToUpdate}/profile`, 'info');
             const profileData = { themePreference: newTheme };
             if (uidToUpdate === ADMIN_DATA_OWNER_ID) {
-                profileData.name = "Admin Data Storage"; // Ensure name for admin profile
-                profileData.isAdmin = true; // Firestore flag, distinct from app state
+                profileData.name = "Admin Data Storage"; 
             }
             await setDoc(userDocRef, profileData, { merge: true });
         } catch (error) {
@@ -1364,35 +1308,37 @@ const App = () => {
   const handleSuccessfulAdminLogin = async () => {
     setIsAdmin(true);
     setCurrentUser({ uid: ADMIN_DATA_OWNER_ID, isPseudoAdmin: true, email: 'admin-via-pin@jmarkets.nl' });
-    // Load admin's theme preference if available
+    
     const adminProfileRef = doc(db, `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/profile`, 'info');
-    const adminProfileSnap = await getDoc(adminProfileRef);
-    if (adminProfileSnap.exists()) {
-        setTheme(adminProfileSnap.data()?.themePreference || 'light');
-    } else {
-        setTheme('light'); // Default if no admin profile
+    try {
+        const adminProfileSnap = await getDoc(adminProfileRef);
+        if (adminProfileSnap.exists()) {
+            setTheme(adminProfileSnap.data()?.themePreference || 'light');
+        } else {
+            await setDoc(adminProfileRef, { themePreference: 'light', name: "Admin Data Storage" }, { merge: true });
+            setTheme('light');
+        }
+    } catch(error) {
+        console.error("Fout bij laden/aanmaken admin thema:", error);
+        setTheme('light'); 
     }
     navigateTo('dashboard');
   };
 
   const handleAdminLogout = async () => {
     setIsAdmin(false);
-    // Revert to the actual Firebase auth state (likely anonymous)
-    setCurrentUser(auth.currentUser);
+    setCurrentUser(auth.currentUser); 
+    
     if (auth.currentUser && auth.currentUser.uid !== ADMIN_DATA_OWNER_ID) {
-        // Load theme of the actual Firebase user (if any, and not the admin UID itself)
         const userDocRef = doc(db, `/artifacts/${appId}/users/${auth.currentUser.uid}/profile`, 'info');
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
             setTheme(userDocSnap.data()?.themePreference || 'light');
         } else {
-            setTheme('light'); // Default if no profile for current user
+            setTheme('light');
         }
-    } else {
-         setTheme('light'); // Default theme on admin logout if no other user context
-    }
-
-    if (!auth.currentUser) {
+    } else if (!auth.currentUser) { 
+        setTheme('light');
         signInAnonymously(auth).catch(e => console.error("Anon sign in na admin logout mislukt", e));
     }
     navigateTo('landing');
@@ -1405,7 +1351,7 @@ const App = () => {
   else if (currentView === 'adminLogin') { viewComponent = <AdminLoginPage onSuccessfulAdminLogin={handleSuccessfulAdminLogin} onBackToLanding={() => navigateTo('landing')} themeColors={currentThemeColors} />; }
   else if (currentView === 'timeline') { viewComponent = <MyJourneyTimelinePage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} onNavigateToContact={() => navigateTo('contact')} {...pageProps} />; }
   else if (currentView === 'contact') { viewComponent = <ContactPage onBackToHome={() => navigateTo('landing')} onNavigateToDashboard={() => navigateTo('dashboard')} {...pageProps} />; }
-  else if (currentView === 'dashboard') { viewComponent = <DashboardView onBackToLanding={() => navigateTo('landing')} currentTheme={theme} toggleTheme={toggleTheme} themeColors={currentThemeColors} onNavigateToTimeline={() => navigateTo('timeline')} onNavigateToContact={() => navigateTo('contact')} isAdmin={isAdmin} onAdminLogout={handleAdminLogout} navigateTo={navigateTo}/>; }
+  else if (currentView === 'dashboard') { viewComponent = <DashboardView onBackToLanding={() => navigateTo('landing')} currentTheme={theme} toggleTheme={toggleTheme} themeColors={currentThemeColors} userId={isAdmin ? ADMIN_DATA_OWNER_ID : currentUser?.uid} isAdmin={isAdmin} onAdminLogout={handleAdminLogout} navigateTo={navigateTo}/>; }
   else { viewComponent = <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Ongeldige weergave.</p></div>; }
 
   if (!isAuthReady) { return <div className={`min-h-screen ${currentThemeColors.bg} flex justify-center items-center ${currentThemeColors.text} font-inter`}><p>Authenticatie laden...</p></div>; }
