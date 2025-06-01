@@ -300,7 +300,7 @@ const MyJourneyTimelinePage = ({ onBackToHome, onNavigateToDashboard, onNavigate
             <img src={jeremyImageUrl} alt="Jeremy Mlynarczyk - JMarkets.nl" className="mx-auto mb-6 rounded-full w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover border-4 border-blue-500 shadow-xl" onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/200x200/${themeColors.cardBg.substring(3)}/${themeColors.text.substring(5)}?text=JM`;}} />
             <h2 
                 className={`text-3xl sm:text-4xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'} transition-all duration-300 ease-in-out hover:tracking-wider`}
-                style={{ textShadow: theme === 'dark' ? `0 0 10px ${themeColors.primaryAccent.replace('text-','').replace('-400','').replace('-600','')}66` : `0 0 10px ${themeColors.primaryAccent.replace('text-','').replace('-400','').replace('-600','')}44` }}
+                style={{ textShadow: theme === 'dark' ? `0 0 12px ${themeColors.primaryAccent.replace('text-','').replace('-400','').replace('-600','')}55` : `0 0 12px ${themeColors.primaryAccent.replace('text-','').replace('-400','').replace('-600','')}33` }}
             >
                 <span className={themeColors.primaryAccent}>J</span>eremy <span className={themeColors.primaryAccent}>M</span>łynarczyk
             </h2>
@@ -470,8 +470,8 @@ const MoodSmiley = memo(({ moodValue, themeColors, size = 18 }) => {
 const DashboardNavbar = ({ onToggleTheme, currentTheme, themeColors, onNavigateToTimeline, onNavigateToContact, isAdmin, onAdminLogout, onTabChange, activeTab, onNavigateToLanding }) => {
     const baseNavLinks = [
         { name: 'Overzicht', icon: LayoutDashboard, action: () => onTabChange('overview'), tabId: 'overview' },
-        { name: 'Mijn Reis', icon: User, action: onNavigateToTimeline, tabId: 'timeline' },
-        { name: 'Contact', icon: Send, action: onNavigateToContact, tabId: 'contact' },
+        { name: 'Mijn Reis', icon: User, action: onNavigateToTimeline, tabId: 'timeline' }, 
+        { name: 'Contact', icon: Send, action: onNavigateToContact, tabId: 'contact' },   
     ];
     if (isAdmin) { baseNavLinks.push({ name: 'Admin', icon: ShieldCheck, action: () => onTabChange('admin'), tabId: 'admin' }); }
 
@@ -486,7 +486,7 @@ const DashboardNavbar = ({ onToggleTheme, currentTheme, themeColors, onNavigateT
                     return (
                         <button
                             key={link.name}
-                            onClick={() => { if(link.action) link.action(); }}
+                            onClick={link.action} 
                             title={link.name}
                             className={`p-2 rounded-md hover:${themeColors.inputBg} transition-colors flex items-center text-xs sm:text-sm ${activeTab === link.tabId ? `${themeColors.primaryAccentBg} text-white` : `${themeColors.subtleText}`}`}
                         >
@@ -517,8 +517,12 @@ const DashboardNavbar = ({ onToggleTheme, currentTheme, themeColors, onNavigateT
     );
 };
 
-const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId }) => {
+const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isAdmin, onEditTrade }) => {
     const [expandedTradeId, setExpandedTradeId] = useState(null);
+    const [filterDate, setFilterDate] = useState(''); 
+    const [filterOutcome, setFilterOutcome] = useState('all'); 
+    const [filterMood, setFilterMood] = useState('all'); 
+
 
     const getAccountNameById = (accountId) => {
         const account = accounts.find(acc => acc.id === accountId);
@@ -536,79 +540,139 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId }) =
         return <div className="flex items-center space-x-1"><Meh className={themeColors.mood[2]} size={16} /></div>;
     };
 
-    const filteredTrades = selectedAccountFilterId === 'cumulative'
-        ? trades
-        : trades.filter(trade => trade.accountId === selectedAccountFilterId);
+    const filteredTrades = trades.filter(trade => {
+        let matchesFilter = true;
+        if (selectedAccountFilterId !== 'cumulative' && trade.accountId !== selectedAccountFilterId) {
+            matchesFilter = false;
+        }
+        if (filterDate) {
+            const tradeDateStr = trade.date && typeof trade.date.toDate === 'function' 
+                ? trade.date.toDate().toISOString().split('T')[0] 
+                : '';
+            if (!tradeDateStr.startsWith(filterDate)) {
+                matchesFilter = false;
+            }
+        }
+        if (filterOutcome !== 'all' && trade.outcome !== filterOutcome) {
+            matchesFilter = false;
+        }
+        if (filterMood !== 'all' && String(trade.mood) !== filterMood) {
+            matchesFilter = false;
+        }
+        return matchesFilter;
+    });
+    
+    const inputClass = `p-2 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-xs`;
 
-    if (filteredTrades.length === 0) {
+
+    if (trades.length === 0 && !isAdmin) { 
         return <p className={`${themeColors.subtleText} text-center py-4`}>Geen trades gevonden voor deze selectie.</p>;
     }
 
+
     return (
         <div className={`${themeColors.cardBg} p-4 sm:p-6 rounded-xl shadow-lg mt-8`}>
-            <h3 className={`text-lg sm:text-xl font-semibold mb-4 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Trades Bekijken</h3>
-            <ul className="space-y-3">
-                {filteredTrades.map(trade => (
-                    <li key={trade.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3">
-                            <div className="flex items-center flex-grow mb-2 sm:mb-0 flex-wrap">
-                                <span className="mr-2 mb-1 sm:mb-0">{getMoodForTradeDisplay(trade.mood)}</span>
-                                <span className={`font-semibold mr-2 ${trade.pnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>
-                                    {trade.pnl >=0 ? '+' : ''}{(trade.pnl || 0).toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}
-                                </span>
-                                <span className={`text-xs sm:text-sm ${themeColors.cardText} mr-2`}>{getAccountNameById(trade.accountId)}</span>
-                                <span className={`text-xs ${themeColors.subtleText} mr-2`}>{trade.date && typeof trade.date.toDate === 'function' ? trade.date.toDate().toLocaleDateString('nl-NL') : 'N/A'}</span>
-                                {trade.tradeTime && <span className={`text-xs ${themeColors.subtleText}`}>({trade.tradeTime})</span>}
-                            </div>
-                            <button
-                                onClick={() => setExpandedTradeId(expandedTradeId === trade.id ? null : trade.id)}
-                                className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded text-xs sm:text-sm inline-flex items-center self-start sm:self-center mt-2 sm:mt-0`}
-                            >
-                                Details {expandedTradeId === trade.id ? <ChevronUp size={16} className="ml-1"/> : <ChevronDown size={16} className="ml-1"/>}
-                            </button>
-                        </div>
-                        {expandedTradeId === trade.id && (
-                            <div className={`p-3 border-t ${themeColors.borderColor} space-y-3 text-xs sm:text-sm`}>
-                                {trade.reasoning && (
-                                    <div>
-                                        <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Onderbouwing:</h4>
-                                        <p className={`whitespace-pre-wrap ${themeColors.subtleText}`}>{trade.reasoning}</p>
-                                    </div>
-                                )}
-                                <div>
-                                    <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Stemming:</h4>
-                                    <p className={`${themeColors.subtleText} italic`}>{moodLabels[trade.mood] || "Geen specifieke stemming genoteerd."}</p>
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+                <h3 className={`text-lg sm:text-xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>
+                    {isAdmin ? "Beheer Trades" : "Trades Bekijken"}
+                </h3>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <input 
+                        type="text" 
+                        placeholder="Datum (YYYY-MM)" 
+                        value={filterDate} 
+                        onChange={(e) => setFilterDate(e.target.value)} 
+                        className={inputClass}
+                    />
+                    <select value={filterOutcome} onChange={(e) => setFilterOutcome(e.target.value)} className={inputClass}>
+                        <option value="all">Alle Uitkomsten</option>
+                        <option value="win">Winst</option>
+                        <option value="loss">Verlies</option>
+                    </select>
+                    <select value={filterMood} onChange={(e) => setFilterMood(e.target.value)} className={inputClass}>
+                        <option value="all">Alle Stemmingen</option>
+                        {[1,2,3,4,5].map(m => <option key={m} value={String(m)}>{moodLabels[m].split(' - ')[0]}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            {filteredTrades.length === 0 ? (
+                 <p className={`${themeColors.subtleText} text-center py-4`}>Geen trades gevonden voor de huidige filters.</p>
+            ) : (
+                <ul className="space-y-3">
+                    {filteredTrades.map(trade => (
+                        <li key={trade.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3">
+                                <div className="flex items-center flex-grow mb-2 sm:mb-0 flex-wrap">
+                                    <span className="mr-2 mb-1 sm:mb-0">{getMoodForTradeDisplay(trade.mood)}</span>
+                                    <span className={`font-semibold mr-2 ${trade.pnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>
+                                        {trade.pnl >=0 ? '+' : ''}{(trade.pnl || 0).toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}
+                                    </span>
+                                    <span className={`text-xs sm:text-sm ${themeColors.cardText} mr-2`}>{getAccountNameById(trade.accountId)}</span>
+                                    <span className={`text-xs ${themeColors.subtleText} mr-2`}>{trade.date && typeof trade.date.toDate === 'function' ? trade.date.toDate().toLocaleDateString('nl-NL') : 'N/A'}</span>
+                                    {trade.tradeTime && <span className={`text-xs ${themeColors.subtleText}`}>({trade.tradeTime})</span>}
                                 </div>
-                                {trade.imageUrl && (
-                                    <div className="my-2">
-                                        <p className={`font-medium ${themeColors.cardText} mb-1`}>Grafiek:</p>
-                                        <img
-                                            src={trade.imageUrl}
-                                            alt={`Trade chart ${trade.pair}`}
-                                            className="rounded-md max-w-full h-auto sm:max-w-md mx-auto shadow-md border ${themeColors.borderColor}"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                    </div>
-                                )}
-                                 {trade.imageUrlOptional && (
-                                    <div className="my-2">
-                                        <p className={`font-medium ${themeColors.cardText} mb-1`}>Order Bewijs:</p>
-                                        <img
-                                            src={trade.imageUrlOptional}
-                                            alt={`Order bewijs ${trade.pair}`}
-                                            className="rounded-md max-w-full h-auto sm:max-w-xs mx-auto shadow-md border ${themeColors.borderColor}"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                    </div>
-                                )}
-                                {(!trade.imageUrl && !trade.imageUrlOptional && !trade.reasoning) && (
-                                    <p className={`${themeColors.subtleText}`}>Geen extra details beschikbaar voor deze trade.</p>
-                                )}
+                                <div className="flex items-center space-x-2">
+                                    {isAdmin && onEditTrade && (
+                                        <button 
+                                            onClick={() => onEditTrade(trade)} 
+                                            className={`p-1.5 rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80 transition-colors`}
+                                            title="Bewerk Trade"
+                                        >
+                                            <Edit3 size={16}/>
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setExpandedTradeId(expandedTradeId === trade.id ? null : trade.id)}
+                                        className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded text-xs sm:text-sm inline-flex items-center self-start sm:self-center mt-2 sm:mt-0`}
+                                    >
+                                        Details {expandedTradeId === trade.id ? <ChevronUp size={16} className="ml-1"/> : <ChevronDown size={16} className="ml-1"/>}
+                                    </button>
+                                </div>
                             </div>
-                        )}
-                    </li>
-                ))}
-            </ul>
+                            {expandedTradeId === trade.id && (
+                                <div className={`p-3 border-t ${themeColors.borderColor} space-y-3 text-xs sm:text-sm`}>
+                                    {trade.reasoning && (
+                                        <div>
+                                            <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Onderbouwing:</h4>
+                                            <p className={`whitespace-pre-wrap ${themeColors.subtleText}`}>{trade.reasoning}</p>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Stemming:</h4>
+                                        <p className={`${themeColors.subtleText} italic`}>{moodLabels[trade.mood] || "Geen specifieke stemming genoteerd."}</p>
+                                    </div>
+                                    {trade.imageUrl && (
+                                        <div className="my-2">
+                                            <p className={`font-medium ${themeColors.cardText} mb-1`}>Grafiek:</p>
+                                            <img
+                                                src={trade.imageUrl}
+                                                alt={`Trade chart ${trade.pair}`}
+                                                className="rounded-md max-w-full h-auto sm:max-w-md mx-auto shadow-md border ${themeColors.borderColor}"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        </div>
+                                    )}
+                                     {trade.imageUrlOptional && (
+                                        <div className="my-2">
+                                            <p className={`font-medium ${themeColors.cardText} mb-1`}>Order Bewijs:</p>
+                                            <img
+                                                src={trade.imageUrlOptional}
+                                                alt={`Order bewijs ${trade.pair}`}
+                                                className="rounded-md max-w-full h-auto sm:max-w-xs mx-auto shadow-md border ${themeColors.borderColor}"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        </div>
+                                    )}
+                                    {(!trade.imageUrl && !trade.imageUrlOptional && !trade.reasoning) && (
+                                        <p className={`${themeColors.subtleText}`}>Geen extra details beschikbaar voor deze trade.</p>
+                                    )}
+                                </div>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 };
@@ -1072,6 +1136,31 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
     const [tradesLoading, setTradesLoading] = useState(true);
     const [selectedAccountFilterId, setSelectedAccountFilterId] = useState('cumulative');
     const tradesSectionRef = useRef(null);
+    const [editingTrade, setEditingTrade] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+
+    const handleEditTrade = (trade) => {
+        setEditingTrade(trade);
+        setShowEditModal(true);
+    };
+
+    const handleUpdateTrade = async (tradeId, updatedData) => {
+        if (!tradeId || !ADMIN_DATA_OWNER_ID) {
+            console.error("Trade ID of Admin Data Owner ID ontbreekt voor update.");
+            return;
+        }
+        const tradeDocRef = doc(db, `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/trades`, tradeId);
+        try {
+            await updateDoc(tradeDocRef, updatedData);
+            console.log("Trade succesvol bijgewerkt in Firestore");
+            // Optioneel: refresh de trades list of update lokaal
+            // Voor nu, de onSnapshot listener zou dit moeten afhandelen.
+        } catch (error) {
+            console.error("Fout bij het bijwerken van de trade:", error);
+            throw error; // Gooi de error door zodat de modal het kan afhandelen
+        }
+    };
+
 
     const scrollToTrades = () => {
         if (tradesSectionRef.current) {
@@ -1086,12 +1175,11 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         }, 100);
     };
     
-    // Data voor het dashboard (overview en admin) wordt altijd van ADMIN_DATA_OWNER_ID gehaald.
-    const dataOwnerForDashboard = ADMIN_DATA_OWNER_ID;
+    const dataFetchingUserId = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
 
     useEffect(() => {
-        if (dataOwnerForDashboard) {
-            const accountsPath = `/artifacts/${appId}/users/${dataOwnerForDashboard}/accounts`;
+        if (dataFetchingUserId) {
+            const accountsPath = `/artifacts/${appId}/users/${dataFetchingUserId}/accounts`;
             const q = query(collection(db, accountsPath), orderBy("createdAt", "desc"));
             const unsubAccounts = onSnapshot(q, (snap) => {
                 const fetchedAccounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1104,12 +1192,12 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         } else {
             setAccounts([]);
         }
-    }, [dataOwnerForDashboard]); // Luister naar dataOwnerForDashboard (zal niet veranderen)
+    }, [dataFetchingUserId]);
 
     useEffect(() => {
-        const dataOwnerIdForTrades = ADMIN_DATA_OWNER_ID; // Trades altijd van admin voor dashboard
+        const dataOwnerIdForTrades = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
 
-        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 )) {
+        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 || isAdmin)) {
             setTradesLoading(true);
             const tradesPath = `/artifacts/${appId}/users/${dataOwnerIdForTrades}/trades`;
             const tradesQuery = query(collection(db, tradesPath), orderBy("date", "asc"));
@@ -1189,7 +1277,7 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
             setKpiValues({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 });
             setTradesLoading(false);
         }
-    }, [accounts, selectedAccountFilterId, isAdmin, userId]); // isAdmin en userId zijn hier om de hook opnieuw te triggeren als de admin-status verandert
+    }, [accounts, selectedAccountFilterId, isAdmin, userId]);
 
     useEffect(() => { if (!isAdmin && activeMainTab === 'admin') { setActiveMainTab('overview'); } }, [isAdmin, activeMainTab]);
 
@@ -1209,7 +1297,62 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         { id: 'nerdStats', label: 'Voor de Nerds', icon: Brain },
     ];
 
-    return ( <div className={`min-h-screen font-inter ${themeColors.bg} ${themeColors.text}`}> <DashboardNavbar onToggleTheme={toggleTheme} currentTheme={currentTheme} themeColors={themeColors} onNavigateToTimeline={onNavigateToTimeline} onNavigateToContact={onNavigateToContact} isAdmin={isAdmin} onAdminLogout={onAdminLogout} onTabChange={setActiveMainTab} activeTab={activeMainTab} onNavigateToLanding={() => navigateTo('landing')} /> <main className="p-4 sm:p-6 md:p-8 space-y-8"> {activeMainTab === 'overview' && ( <section id="dashboard-overview"> <h2 className={`text-2xl sm:text-3xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Dashboard Overzicht</h2> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> <div className="mb-6 flex flex-wrap gap-2 items-center"> <span className={`mr-2 text-sm ${themeColors.subtleText}`}>Toon data voor:</span> <button onClick={() => setSelectedAccountFilterId('cumulative')} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === 'cumulative' ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> Cumulatief </button> {accounts.map(acc => ( <button key={acc.id} onClick={() => setSelectedAccountFilterId(acc.id)} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === acc.id ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> {acc.name} </button> ))} </div> <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"> {kpiData.map(kpi => <KPI_Card key={kpi.title} {...kpi} themeColors={themeColors} />)} </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg`}> <h3 className={`text-xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Equity Curve</h3> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> <div className={`h-[450px] md:h-[550px] flex items-center justify-center rounded-md ${themeColors.text === 'text-slate-200' ? 'border-opacity-30' : 'border-opacity-50'}`}> {tradesLoading ? ( <p className={`${themeColors.subtleText}`}>Equity curve data laden...</p> ) : ( <SimpleEquityChart data={equityCurveData} themeColors={themeColors} /> )} </div> </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}> <div className="flex border-b ${themeColors.borderColor} mb-4 overflow-x-auto pb-px"> {analyticsTabs.map(tab => { const IconComponent = tab.icon; return ( <button key={tab.id} onClick={() => setActiveAnalyticsTab(tab.id)} className={`flex-shrink-0 flex items-center py-3 px-3 sm:px-4 -mb-px font-medium text-xs sm:text-sm focus:outline-none transition-colors duration-200 ${activeAnalyticsTab === tab.id ? `border-b-2 ${themeColors.primaryAccent.replace('text-','border-')} ${themeColors.primaryAccent}` : `${themeColors.subtleText} hover:${themeColors.text}` }`}> {IconComponent && <IconComponent className="mr-1 sm:mr-2" size={16} sm:size={18}/>} {tab.label} </button> ); })} </div> <div> {activeAnalyticsTab === 'monthlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>8% - 14%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'yearlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>96% - 168%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'nerdStats' && ( <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm"> <div><span className={`${themeColors.cardText} font-medium`}>Risk to Ruin %:</span> <span className={themeColors.subtleText}>0% (Gebaseerd op 500 trades)</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Expected Value (EV) / Trade:</span> <span className={kpiValues.evPerTrade >= 0 ? themeColors.textPositive : themeColors.textNegative}>{kpiValues.evPerTrade.toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Max Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.maxDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gemiddelde Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.avgDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gem. Dagen Tussen Trades:</span> <span className={themeColors.subtleText}>{kpiValues.avgDaysBetweenTrades.toFixed(1)}</span></div> </div> )} </div> </div> <div ref={tradesSectionRef}> <TradeList trades={allTrades} accounts={accounts} themeColors={themeColors} selectedAccountFilterId={selectedAccountFilterId} /> </div> <UserAccountStatusList themeColors={themeColors} allTrades={allTrades} onSelectAccountTrades={handleSelectAccountTrades} /> </section> )} {isAdmin && activeMainTab === 'admin' && ( <section id="admin-panel" className="mt-2 space-y-8"> <h2 className={`text-2xl sm:text-3xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Administrator Paneel</h2> <AdminTradeInputForm themeColors={themeColors} userId={ADMIN_DATA_OWNER_ID} accounts={accounts} /> <AdminAccountManagement themeColors={themeColors} userId={ADMIN_DATA_OWNER_ID} onAccountAdded={handleAccountAdded} accounts={accounts} setAccounts={setAccounts} /> </section> )} <button onClick={onBackToLanding} className={`mt-8 ${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out self-center`}> Terug naar Home </button> </main> </div> );};
+    return ( <div className={`min-h-screen font-inter ${themeColors.bg} ${themeColors.text}`}> 
+        <DashboardNavbar 
+            onToggleTheme={toggleTheme} 
+            currentTheme={currentTheme} 
+            themeColors={themeColors} 
+            onNavigateToTimeline={() => navigateTo('timeline')} 
+            onNavigateToContact={() => navigateTo('contact')} 
+            isAdmin={isAdmin} 
+            onAdminLogout={onAdminLogout} 
+            onTabChange={setActiveMainTab} 
+            activeTab={activeMainTab} 
+            onNavigateToLanding={() => navigateTo('landing')} 
+        /> 
+        <main className="p-4 sm:p-6 md:p-8 space-y-8"> 
+            {activeMainTab === 'overview' && ( 
+            <section id="dashboard-overview"> 
+                <h2 className={`text-2xl sm:text-3xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Dashboard Overzicht</h2> 
+                <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> 
+                <div className="mb-6 flex flex-wrap gap-2 items-center"> 
+                    <span className={`mr-2 text-sm ${themeColors.subtleText}`}>Toon data voor:</span> 
+                    <button onClick={() => setSelectedAccountFilterId('cumulative')} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === 'cumulative' ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> Cumulatief </button> 
+                    {accounts.map(acc => ( <button key={acc.id} onClick={() => setSelectedAccountFilterId(acc.id)} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === acc.id ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> {acc.name} </button> ))} 
+                </div> 
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"> {kpiData.map(kpi => <KPI_Card key={kpi.title} {...kpi} themeColors={themeColors} />)} </div> 
+                <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg`}> 
+                    <h3 className={`text-xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Equity Curve</h3> 
+                    <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> 
+                    <div className={`h-[450px] md:h-[550px] flex items-center justify-center rounded-md ${themeColors.text === 'text-slate-200' ? 'border-opacity-30' : 'border-opacity-50'}`}> {tradesLoading ? ( <p className={`${themeColors.subtleText}`}>Equity curve data laden...</p> ) : ( <SimpleEquityChart data={equityCurveData} themeColors={themeColors} /> )} </div> 
+                </div> 
+                <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}> 
+                    <div className="flex border-b ${themeColors.borderColor} mb-4 overflow-x-auto pb-px"> {analyticsTabs.map(tab => { const IconComponent = tab.icon; return ( <button key={tab.id} onClick={() => setActiveAnalyticsTab(tab.id)} className={`flex-shrink-0 flex items-center py-3 px-3 sm:px-4 -mb-px font-medium text-xs sm:text-sm focus:outline-none transition-colors duration-200 ${activeAnalyticsTab === tab.id ? `border-b-2 ${themeColors.primaryAccent.replace('text-','border-')} ${themeColors.primaryAccent}` : `${themeColors.subtleText} hover:${themeColors.text}` }`}> {IconComponent && <IconComponent className="mr-1 sm:mr-2" size={16} sm:size={18}/>} {tab.label} </button> ); })} </div> 
+                    <div> {activeAnalyticsTab === 'monthlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>8% - 14%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'yearlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>96% - 168%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'nerdStats' && ( <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm"> <div><span className={`${themeColors.cardText} font-medium`}>Risk to Ruin %:</span> <span className={themeColors.subtleText}>0% (Gebaseerd op 500 trades)</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Expected Value (EV) / Trade:</span> <span className={kpiValues.evPerTrade >= 0 ? themeColors.textPositive : themeColors.textNegative}>{kpiValues.evPerTrade.toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Max Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.maxDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gemiddelde Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.avgDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gem. Dagen Tussen Trades:</span> <span className={themeColors.subtleText}>{kpiValues.avgDaysBetweenTrades.toFixed(1)}</span></div> </div> )} </div> 
+                </div> 
+                <div ref={tradesSectionRef}> <TradeList trades={allTrades} accounts={accounts} themeColors={themeColors} selectedAccountFilterId={selectedAccountFilterId} isAdmin={isAdmin} onEditTrade={handleEditTrade} /> </div> 
+                <UserAccountStatusList themeColors={themeColors} allTrades={allTrades} onSelectAccountTrades={handleSelectAccountTrades} /> 
+            </section> )} 
+            {isAdmin && activeMainTab === 'admin' && ( 
+            <section id="admin-panel" className="mt-2 space-y-8"> 
+                <h2 className={`text-2xl sm:text-3xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Administrator Paneel</h2> 
+                <AdminTradeInputForm themeColors={themeColors} userId={ADMIN_DATA_OWNER_ID} accounts={accounts} /> 
+                <AdminAccountManagement themeColors={themeColors} userId={ADMIN_DATA_OWNER_ID} onAccountAdded={handleAccountAdded} accounts={accounts} setAccounts={setAccounts} /> 
+                {showEditModal && editingTrade && (
+                    <AdminEditTradeModal 
+                        show={showEditModal} 
+                        onClose={() => { setShowEditModal(false); setEditingTrade(null); }} 
+                        tradeToEdit={editingTrade} 
+                        onUpdateTrade={handleUpdateTrade} 
+                        themeColors={themeColors} 
+                        accounts={accounts} 
+                    />
+                )}
+            </section> )} 
+            <button onClick={onBackToLanding} className={`mt-8 ${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out self-center`}> Terug naar Home </button> 
+        </main> 
+    </div> );
+};
 
 // Main App Component
 const App = () => {
