@@ -32,7 +32,7 @@ setLogLevel('debug');
 
 // Kleurenpalet
 const themes = { 
-  dark: { bg: 'bg-slate-900', text: 'text-slate-200', cardBg: 'bg-slate-800', cardText: 'text-slate-300', primaryAccent: 'text-blue-400', primaryAccentBg: 'bg-blue-600', primaryAccentHoverBg: 'bg-blue-700', borderColor: 'border-slate-700', inputBg: 'bg-slate-700', inputText: 'text-slate-200', placeholderText: 'text-slate-500', subtleText: 'text-slate-400', subtleBg: 'bg-slate-800', timelineLine: 'border-slate-600', timelineDotBorder: 'border-slate-900', quoteText: 'text-slate-600', adminButtonBg: 'bg-emerald-600', adminButtonHoverBg: 'bg-emerald-700', chartGrid: 'stroke-slate-700', chartAxis: 'fill-slate-400', chartLabel: 'fill-slate-300', chartLine: 'stroke-blue-400', chartPoint: 'fill-blue-400', chartGradientFrom: 'rgba(59, 130, 246, 0.3)', chartGradientTo: 'rgba(59, 130, 246, 0.0)', textPositive: 'text-green-400', textNegative: 'text-red-400', tabActiveBg: 'bg-blue-600', tabInactiveBg: 'bg-slate-700', tabActiveText: 'text-white', tabInactiveText: 'text-slate-300', footerText: 'text-slate-500', filterButtonActiveBg: 'bg-blue-500', filterButtonInactiveBg: 'bg-slate-700', filterButtonActiveText: 'text-white', filterButtonInactiveText: 'text-slate-300', mood: ['text-red-500', 'text-orange-500', 'text-yellow-500', 'text-lime-500', 'text-green-500'], moodBg: ['bg-red-500/20', 'bg-orange-500/20', 'bg-yellow-500/20', 'bg-lime-500/20', 'bg-green-500/20'], disabledButtonBg: 'bg-slate-700', disabledButtonText: 'text-slate-500' }, 
+  dark: { bg: 'bg-slate-900', text: 'text-slate-200', cardBg: 'bg-slate-800', cardText: 'text-slate-300', primaryAccent: 'text-blue-400', primaryAccentBg: 'bg-blue-600', primaryAccentHoverBg: 'bg-blue-500', borderColor: 'border-slate-700', inputBg: 'bg-slate-700', inputText: 'text-slate-200', placeholderText: 'text-slate-500', subtleText: 'text-slate-400', subtleBg: 'bg-slate-800', timelineLine: 'border-slate-600', timelineDotBorder: 'border-slate-900', quoteText: 'text-slate-600', adminButtonBg: 'bg-emerald-600', adminButtonHoverBg: 'bg-emerald-700', chartGrid: 'stroke-slate-700', chartAxis: 'fill-slate-400', chartLabel: 'fill-slate-300', chartLine: 'stroke-blue-400', chartPoint: 'fill-blue-400', chartGradientFrom: 'rgba(59, 130, 246, 0.3)', chartGradientTo: 'rgba(59, 130, 246, 0.0)', textPositive: 'text-green-400', textNegative: 'text-red-400', tabActiveBg: 'bg-blue-600', tabInactiveBg: 'bg-slate-700', tabActiveText: 'text-white', tabInactiveText: 'text-slate-300', footerText: 'text-slate-500', filterButtonActiveBg: 'bg-blue-500', filterButtonInactiveBg: 'bg-slate-700', filterButtonActiveText: 'text-white', filterButtonInactiveText: 'text-slate-300', mood: ['text-red-500', 'text-orange-500', 'text-yellow-500', 'text-lime-500', 'text-green-500'], moodBg: ['bg-red-500/20', 'bg-orange-500/20', 'bg-yellow-500/20', 'bg-lime-500/20', 'bg-green-500/20'], disabledButtonBg: 'bg-slate-700', disabledButtonText: 'text-slate-500' }, 
   light: { bg: 'bg-slate-50', text: 'text-slate-800', cardBg: 'bg-white', cardText: 'text-slate-700', primaryAccent: 'text-blue-600', primaryAccentBg: 'bg-blue-600', primaryAccentHoverBg: 'bg-blue-700', borderColor: 'border-slate-300', inputBg: 'bg-slate-200', inputText: 'text-slate-800', placeholderText: 'text-slate-400', subtleText: 'text-slate-500', subtleBg: 'bg-slate-100', timelineLine: 'border-slate-300', timelineDotBorder: 'border-slate-50', quoteText: 'text-slate-400', adminButtonBg: 'bg-emerald-500', adminButtonHoverBg: 'bg-emerald-600', chartGrid: 'stroke-slate-300', chartAxis: 'fill-slate-500', chartLabel: 'fill-slate-700', chartLine: 'stroke-blue-600', chartPoint: 'fill-blue-600', chartGradientFrom: 'rgba(37, 99, 235, 0.2)', chartGradientTo: 'rgba(37, 99, 235, 0.0)', textPositive: 'text-green-600', textNegative: 'text-red-600', tabActiveBg: 'bg-blue-600', tabInactiveBg: 'bg-slate-200', tabActiveText: 'text-white', tabInactiveText: 'text-slate-600', footerText: 'text-slate-400', filterButtonActiveBg: 'bg-blue-600', filterButtonInactiveBg: 'bg-slate-200', filterButtonActiveText: 'text-white', filterButtonInactiveText: 'text-slate-600', mood: ['text-red-600', 'text-orange-500', 'text-yellow-500', 'text-lime-500', 'text-green-500'], moodBg: ['bg-red-600/20', 'bg-orange-500/20', 'bg-yellow-500/20', 'bg-lime-500/20', 'bg-green-500/20'], disabledButtonBg: 'bg-slate-200', disabledButtonText: 'text-slate-400'}
 };
 
@@ -163,7 +163,7 @@ const LandingPage = ({ onNavigateToDashboard, onNavigateToTimeline, onNavigateTo
         <div className="flex flex-col items-center space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-xs sm:max-w-xl md:max-w-2xl">
                 <button onClick={onNavigateToTimeline} className={`bg-transparent border-2 ${themeColors.primaryAccent.replace('text-','border-')} hover:${themeColors.primaryAccentBg} ${themeColors.primaryAccent} hover:text-white font-semibold py-3 px-6 rounded-lg text-base sm:text-lg transition-colors duration-300 inline-flex items-center justify-center`}> <User size={20} className="mr-2 sm:mr-3" /> Mijn Reis </button>
-                <button onClick={onNavigateToDashboard} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentBg} text-white font-semibold py-4 px-8 md:py-5 md:px-10 rounded-lg text-lg sm:text-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out inline-flex items-center justify-center`}> <Eye size={22} className="mr-2 sm:mr-3" /> Neem een kijkje </button>
+                <button onClick={onNavigateToDashboard} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-4 px-8 md:py-5 md:px-10 rounded-lg text-lg sm:text-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out inline-flex items-center justify-center`}> <Eye size={22} className="mr-2 sm:mr-3" /> Neem een kijkje </button>
                 <button onClick={onNavigateToContact} className={`bg-transparent border-2 ${themeColors.primaryAccent.replace('text-','border-')} hover:${themeColors.primaryAccentBg} ${themeColors.primaryAccent} hover:text-white font-semibold py-3 px-6 rounded-lg text-base sm:text-lg transition-colors duration-300 inline-flex items-center justify-center`}> <Send size={20} className="mr-2 sm:mr-3" /> Contact </button>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full max-w-xs sm:max-w-xl md:max-w-2xl">
@@ -519,9 +519,11 @@ const DashboardNavbar = ({ onToggleTheme, currentTheme, themeColors, onNavigateT
 
 const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isAdmin, onEditTrade }) => {
     const [expandedTradeId, setExpandedTradeId] = useState(null);
-    const [filterDate, setFilterDate] = useState(''); 
-    const [filterOutcome, setFilterOutcome] = useState('all'); 
-    const [filterMood, setFilterMood] = useState('all'); 
+    const [filterDateSort, setFilterDateSort] = useState('newest'); // 'newest', 'oldest'
+    const [filterOutcome, setFilterOutcome] = useState('all'); // 'all', 'win', 'loss'
+    const [filterMood, setFilterMood] = useState('all'); // 'all', '1', '2', '3', '4', '5'
+    const [currentPage, setCurrentPage] = useState(1);
+    const tradesPerPage = 6;
 
 
     const getAccountNameById = (accountId) => {
@@ -540,27 +542,36 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isA
         return <div className="flex items-center space-x-1"><Meh className={themeColors.mood[2]} size={16} /></div>;
     };
 
-    const filteredTrades = trades.filter(trade => {
-        let matchesFilter = true;
-        if (selectedAccountFilterId !== 'cumulative' && trade.accountId !== selectedAccountFilterId) {
-            matchesFilter = false;
-        }
-        if (filterDate) {
-            const tradeDateStr = trade.date && typeof trade.date.toDate === 'function' 
-                ? trade.date.toDate().toISOString().split('T')[0] 
-                : '';
-            if (!tradeDateStr.startsWith(filterDate)) { // Allows filtering by YYYY-MM or YYYY-MM-DD
+    const processedTrades = trades
+        .filter(trade => {
+            let matchesFilter = true;
+            if (selectedAccountFilterId !== 'cumulative' && trade.accountId !== selectedAccountFilterId) {
                 matchesFilter = false;
             }
-        }
-        if (filterOutcome !== 'all' && trade.outcome !== filterOutcome) {
-            matchesFilter = false;
-        }
-        if (filterMood !== 'all' && String(trade.mood) !== filterMood) {
-            matchesFilter = false;
-        }
-        return matchesFilter;
-    });
+            if (filterOutcome !== 'all' && trade.outcome !== filterOutcome) {
+                matchesFilter = false;
+            }
+            if (filterMood !== 'all' && String(trade.mood) !== filterMood) {
+                matchesFilter = false;
+            }
+            return matchesFilter;
+        })
+        .sort((a, b) => {
+            const dateA = a.date && typeof a.date.toDate === 'function' ? a.date.toDate() : new Date(0);
+            const dateB = b.date && typeof b.date.toDate === 'function' ? b.date.toDate() : new Date(0);
+            if (filterDateSort === 'newest') {
+                return dateB - dateA;
+            } else {
+                return dateA - dateB;
+            }
+        });
+    
+    const indexOfLastTrade = currentPage * tradesPerPage;
+    const indexOfFirstTrade = indexOfLastTrade - tradesPerPage;
+    const currentTrades = processedTrades.slice(indexOfFirstTrade, indexOfLastTrade);
+    const totalPages = Math.ceil(processedTrades.length / tradesPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
     
     const inputClass = `p-2 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-xs sm:text-sm`;
 
@@ -572,18 +583,15 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isA
 
     return (
         <div className={`${themeColors.cardBg} p-4 sm:p-6 rounded-xl shadow-lg mt-8`}>
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <h3 className={`text-lg sm:text-xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>
                     {isAdmin ? "Beheer Trades" : "Trades Bekijken"}
                 </h3>
                 <div className="flex flex-wrap gap-2 items-center">
-                    <input 
-                        type="text" 
-                        placeholder="Datum (JJJJ-MM)" 
-                        value={filterDate} 
-                        onChange={(e) => setFilterDate(e.target.value)} 
-                        className={`${inputClass} w-32 sm:w-auto`}
-                    />
+                    <select value={filterDateSort} onChange={(e) => setFilterDateSort(e.target.value)} className={inputClass}>
+                        <option value="newest">Nieuwste eerst</option>
+                        <option value="oldest">Oudste eerst</option>
+                    </select>
                     <select value={filterOutcome} onChange={(e) => setFilterOutcome(e.target.value)} className={inputClass}>
                         <option value="all">Alle Uitkomsten</option>
                         <option value="win">Winst</option>
@@ -596,82 +604,97 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isA
                 </div>
             </div>
 
-            {filteredTrades.length === 0 ? (
+            {currentTrades.length === 0 ? (
                  <p className={`${themeColors.subtleText} text-center py-4`}>Geen trades gevonden voor de huidige filters.</p>
             ) : (
-                <ul className="space-y-3">
-                    {filteredTrades.map(trade => (
-                        <li key={trade.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3">
-                                <div className="flex items-center flex-grow mb-2 sm:mb-0 flex-wrap">
-                                    <span className="mr-2 mb-1 sm:mb-0">{getMoodForTradeDisplay(trade.mood)}</span>
-                                    <span className={`font-semibold mr-2 ${trade.pnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>
-                                        {trade.pnl >=0 ? '+' : ''}{(trade.pnl || 0).toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}
-                                    </span>
-                                    <span className={`text-xs sm:text-sm ${themeColors.cardText} mr-2`}>{getAccountNameById(trade.accountId)}</span>
-                                    <span className={`text-xs ${themeColors.subtleText} mr-2`}>{trade.date && typeof trade.date.toDate === 'function' ? trade.date.toDate().toLocaleDateString('nl-NL') : 'N/A'}</span>
-                                    {trade.tradeTime && <span className={`text-xs ${themeColors.subtleText}`}>({trade.tradeTime})</span>}
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    {isAdmin && onEditTrade && (
-                                        <button 
-                                            onClick={() => onEditTrade(trade)} 
-                                            className={`p-1.5 rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80 transition-colors`}
-                                            title="Bewerk Trade"
-                                        >
-                                            <Edit3 size={16}/>
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => setExpandedTradeId(expandedTradeId === trade.id ? null : trade.id)}
-                                        className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded text-xs sm:text-sm inline-flex items-center self-start sm:self-center mt-2 sm:mt-0`}
-                                    >
-                                        Details {expandedTradeId === trade.id ? <ChevronUp size={16} className="ml-1"/> : <ChevronDown size={16} className="ml-1"/>}
-                                    </button>
-                                </div>
-                            </div>
-                            {expandedTradeId === trade.id && (
-                                <div className={`p-3 border-t ${themeColors.borderColor} space-y-3 text-xs sm:text-sm`}>
-                                    {trade.reasoning && (
-                                        <div>
-                                            <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Onderbouwing:</h4>
-                                            <p className={`whitespace-pre-wrap ${themeColors.subtleText}`}>{trade.reasoning}</p>
-                                        </div>
-                                    )}
-                                    <div>
-                                        <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Stemming:</h4>
-                                        <p className={`${themeColors.subtleText} italic`}>{moodLabels[trade.mood] || "Geen specifieke stemming genoteerd."}</p>
+                <>
+                    <ul className="space-y-3">
+                        {currentTrades.map(trade => (
+                            <li key={trade.id} className={`${themeColors.subtleBg} rounded-md overflow-hidden`}>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3">
+                                    <div className="flex items-center flex-grow mb-2 sm:mb-0 flex-wrap">
+                                        <span className="mr-2 mb-1 sm:mb-0">{getMoodForTradeDisplay(trade.mood)}</span>
+                                        <span className={`font-semibold mr-2 ${trade.pnl >= 0 ? themeColors.textPositive : themeColors.textNegative}`}>
+                                            {trade.pnl >=0 ? '+' : ''}{(trade.pnl || 0).toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}
+                                        </span>
+                                        <span className={`text-xs sm:text-sm ${themeColors.cardText} mr-2`}>{getAccountNameById(trade.accountId)}</span>
+                                        <span className={`text-xs ${themeColors.subtleText} mr-2`}>{trade.date && typeof trade.date.toDate === 'function' ? trade.date.toDate().toLocaleDateString('nl-NL') : 'N/A'}</span>
+                                        {trade.tradeTime && <span className={`text-xs ${themeColors.subtleText}`}>({trade.tradeTime})</span>}
                                     </div>
-                                    {trade.imageUrl && (
-                                        <div className="my-2">
-                                            <p className={`font-medium ${themeColors.cardText} mb-1`}>Grafiek:</p>
-                                            <img
-                                                src={trade.imageUrl}
-                                                alt={`Trade chart ${trade.pair}`}
-                                                className="rounded-md max-w-full h-auto sm:max-w-md mx-auto shadow-md border ${themeColors.borderColor}"
-                                                onError={(e) => { e.target.style.display = 'none'; }}
-                                            />
-                                        </div>
-                                    )}
-                                     {trade.imageUrlOptional && (
-                                        <div className="my-2">
-                                            <p className={`font-medium ${themeColors.cardText} mb-1`}>Order Bewijs:</p>
-                                            <img
-                                                src={trade.imageUrlOptional}
-                                                alt={`Order bewijs ${trade.pair}`}
-                                                className="rounded-md max-w-full h-auto sm:max-w-xs mx-auto shadow-md border ${themeColors.borderColor}"
-                                                onError={(e) => { e.target.style.display = 'none'; }}
-                                            />
-                                        </div>
-                                    )}
-                                    {(!trade.imageUrl && !trade.imageUrlOptional && !trade.reasoning) && (
-                                        <p className={`${themeColors.subtleText}`}>Geen extra details beschikbaar voor deze trade.</p>
-                                    )}
+                                    <div className="flex items-center space-x-2">
+                                        {isAdmin && onEditTrade && (
+                                            <button 
+                                                onClick={() => onEditTrade(trade)} 
+                                                className={`p-1.5 rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80 transition-colors`}
+                                                title="Bewerk Trade"
+                                            >
+                                                <Edit3 size={16}/>
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setExpandedTradeId(expandedTradeId === trade.id ? null : trade.id)}
+                                            className={`${themeColors.primaryAccent} hover:opacity-75 p-1 rounded text-xs sm:text-sm inline-flex items-center self-start sm:self-center mt-2 sm:mt-0`}
+                                        >
+                                            Details {expandedTradeId === trade.id ? <ChevronUp size={16} className="ml-1"/> : <ChevronDown size={16} className="ml-1"/>}
+                                        </button>
+                                    </div>
                                 </div>
-                            )}
-                        </li>
-                    ))}
-                </ul>
+                                {expandedTradeId === trade.id && (
+                                    <div className={`p-3 border-t ${themeColors.borderColor} space-y-3 text-xs sm:text-sm`}>
+                                        {trade.reasoning && (
+                                            <div>
+                                                <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Onderbouwing:</h4>
+                                                <p className={`whitespace-pre-wrap ${themeColors.subtleText}`}>{trade.reasoning}</p>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h4 className={`font-medium ${themeColors.cardText} mb-1`}>Stemming:</h4>
+                                            <p className={`${themeColors.subtleText} italic`}>{moodLabels[trade.mood] || "Geen specifieke stemming genoteerd."}</p>
+                                        </div>
+                                        {trade.imageUrl && (
+                                            <div className="my-2">
+                                                <p className={`font-medium ${themeColors.cardText} mb-1`}>Grafiek:</p>
+                                                <img
+                                                    src={trade.imageUrl}
+                                                    alt={`Trade chart ${trade.pair}`}
+                                                    className="rounded-md max-w-full h-auto sm:max-w-md mx-auto shadow-md border ${themeColors.borderColor}"
+                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                />
+                                            </div>
+                                        )}
+                                         {trade.imageUrlOptional && (
+                                            <div className="my-2">
+                                                <p className={`font-medium ${themeColors.cardText} mb-1`}>Order Bewijs:</p>
+                                                <img
+                                                    src={trade.imageUrlOptional}
+                                                    alt={`Order bewijs ${trade.pair}`}
+                                                    className="rounded-md max-w-full h-auto sm:max-w-xs mx-auto shadow-md border ${themeColors.borderColor}"
+                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                />
+                                            </div>
+                                        )}
+                                        {(!trade.imageUrl && !trade.imageUrlOptional && !trade.reasoning) && (
+                                            <p className={`${themeColors.subtleText}`}>Geen extra details beschikbaar voor deze trade.</p>
+                                        )}
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                    {totalPages > 1 && (
+                        <div className="mt-6 flex justify-center items-center space-x-2">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => paginate(page)}
+                                    className={`px-3 py-1 rounded-md text-xs ${currentPage === page ? `${themeColors.primaryAccentBg} text-white` : `${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80`}`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
@@ -1312,7 +1335,7 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
     };
 
     const handleUpdateTrade = async (tradeId, updatedData) => {
-        if (!tradeId || !ADMIN_DATA_OWNER_ID) { // Check if ADMIN_DATA_OWNER_ID is correct for this path
+        if (!tradeId || !ADMIN_DATA_OWNER_ID) { 
             console.error("Trade ID of Admin Data Owner ID ontbreekt voor update.");
             throw new Error("Trade ID of Admin Data Owner ID ontbreekt voor update.");
         }
@@ -1320,7 +1343,6 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         try {
             await updateDoc(tradeDocRef, updatedData);
             console.log("Trade succesvol bijgewerkt in Firestore");
-            // De onSnapshot listener zou de lijst automatisch moeten bijwerken.
         } catch (error) {
             console.error("Fout bij het bijwerken van de trade:", error);
             throw error; 
@@ -1341,7 +1363,7 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         }, 100);
     };
     
-    const dataFetchingUserId = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
+    const dataFetchingUserId = ADMIN_DATA_OWNER_ID; // Altijd admin data voor publiek dashboard
 
     useEffect(() => {
         if (dataFetchingUserId) {
@@ -1361,9 +1383,9 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
     }, [dataFetchingUserId]);
 
     useEffect(() => {
-        const dataOwnerIdForTrades = ADMIN_DATA_OWNER_ID; // Publiek dashboard toont altijd admin trades
+        const dataOwnerIdForTrades = ADMIN_DATA_OWNER_ID; 
 
-        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 )) {
+        if (dataOwnerIdForTrades) {
             setTradesLoading(true);
             const tradesPath = `/artifacts/${appId}/users/${dataOwnerIdForTrades}/trades`;
             const tradesQuery = query(collection(db, tradesPath), orderBy("date", "asc"));
@@ -1398,11 +1420,15 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
                         if (typeof trade.rr === 'number') { sumOfWinTradeRR += trade.rr; }
                     } else {
                         losingTrades++;
-                        sumOfPnlLosses += Math.abs(trade.pnl || 0);
+                        sumOfPnlLosses += Math.abs(trade.pnl || 0); // PNL is al negatief voor verlies
                         const accountForTrade = accounts.find(acc => acc.id === trade.accountId);
-                        const startKapitalForDD = selectedAccountFilterId === 'cumulative' ? (accountForTrade?.startKapitaal || 0) : (selectedAccountData?.startKapitaal || 0);
-                        if (startKapitalForDD > 0 && typeof trade.riskAmount === 'number') {
-                            const drawdownPercent = (trade.riskAmount / startKapitalForDD) * 100;
+                        const startKapitaalForDD = selectedAccountFilterId === 'cumulative' 
+                            ? (accountForTrade?.startKapitaal || 0) 
+                            : (selectedAccountData?.startKapitaal || 0);
+                        
+                        if (startKapitaalForDD > 0 && typeof trade.pnl === 'number' && trade.pnl < 0) {
+                            // Drawdown als percentage van het startkapitaal van het *betreffende* account
+                            const drawdownPercent = (Math.abs(trade.pnl) / startKapitaalForDD) * 100;
                             tradeDrawdownPercentages.push(drawdownPercent);
                         }
                     }
@@ -1443,7 +1469,7 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
             setKpiValues({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 });
             setTradesLoading(false);
         }
-    }, [accounts, selectedAccountFilterId, isAdmin, userId]); // isAdmin en userId zijn hier om de hook opnieuw te triggeren als de admin-status verandert
+    }, [accounts, selectedAccountFilterId, isAdmin, userId]); 
 
     useEffect(() => { if (!isAdmin && activeMainTab === 'admin') { setActiveMainTab('overview'); } }, [isAdmin, activeMainTab]);
 
@@ -1482,7 +1508,7 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
                 <h2 className={`text-2xl sm:text-3xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Dashboard Overzicht</h2> 
                 <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> 
                 <div className="mb-6 flex flex-wrap gap-2 items-center"> 
-                    <span className={`mr-2 text-sm ${themeColors.subtleText}`}>Toon data voor:</span> 
+                    <span className={`mr-2 text-sm ${themeColors.subtleText}`}>Account:</span> 
                     <button onClick={() => setSelectedAccountFilterId('cumulative')} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === 'cumulative' ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> Cumulatief </button> 
                     {accounts.map(acc => ( <button key={acc.id} onClick={() => setSelectedAccountFilterId(acc.id)} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === acc.id ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> {acc.name} </button> ))} 
                 </div> 
@@ -1533,6 +1559,7 @@ const App = () => {
     console.log("Navigating to:", view); 
     const pageContainer = document.getElementById('page-container');
     if (pageContainer) {
+      pageContainer.style.transition = 'opacity 0.25s ease-in-out';
       pageContainer.style.opacity = '0'; 
       setTimeout(() => {
         setCurrentView(view);
