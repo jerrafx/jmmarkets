@@ -549,7 +549,7 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isA
             const tradeDateStr = trade.date && typeof trade.date.toDate === 'function' 
                 ? trade.date.toDate().toISOString().split('T')[0] 
                 : '';
-            if (!tradeDateStr.startsWith(filterDate)) {
+            if (!tradeDateStr.startsWith(filterDate)) { // Allows filtering by YYYY-MM or YYYY-MM-DD
                 matchesFilter = false;
             }
         }
@@ -562,7 +562,7 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isA
         return matchesFilter;
     });
     
-    const inputClass = `p-2 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-xs`;
+    const inputClass = `p-2 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-xs sm:text-sm`;
 
 
     if (trades.length === 0 && !isAdmin) { 
@@ -579,10 +579,10 @@ const TradeList = ({ trades, accounts, themeColors, selectedAccountFilterId, isA
                 <div className="flex flex-wrap gap-2 items-center">
                     <input 
                         type="text" 
-                        placeholder="Datum (YYYY-MM)" 
+                        placeholder="Datum (JJJJ-MM)" 
                         value={filterDate} 
                         onChange={(e) => setFilterDate(e.target.value)} 
-                        className={inputClass}
+                        className={`${inputClass} w-32 sm:w-auto`}
                     />
                     <select value={filterOutcome} onChange={(e) => setFilterOutcome(e.target.value)} className={inputClass}>
                         <option value="all">Alle Uitkomsten</option>
@@ -1126,6 +1126,173 @@ const SimpleEquityChart = memo(({ data, themeColors }) => {
     </div>
   );});
 
+const AdminEditTradeModal = ({ show, onClose, tradeToEdit, onUpdateTrade, themeColors, accounts }) => {
+    const [formData, setFormData] = useState({});
+    const [feedback, setFeedback] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
+    const [optionalImageFile, setOptionalImageFile] = useState(null);
+
+
+    useEffect(() => {
+        if (tradeToEdit) {
+            setFormData({
+                pair: tradeToEdit.pair || '', 
+                date: tradeToEdit.date && typeof tradeToEdit.date.toDate === 'function' ? tradeToEdit.date.toDate().toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                tradeTime: tradeToEdit.tradeTime || new Date().toTimeString().slice(0,5), 
+                riskAmount: String(tradeToEdit.riskAmount || ''), 
+                rr: String(tradeToEdit.rr || ''), 
+                outcome: tradeToEdit.outcome || 'win', 
+                accountId: tradeToEdit.accountId || '', 
+                imageUrl: tradeToEdit.imageUrl || '',
+                imageUrlOptional: tradeToEdit.imageUrlOptional || '',
+                reasoning: tradeToEdit.reasoning || '',
+                mood: tradeToEdit.mood || null, 
+            });
+        } else {
+            setFormData({ pair: '', date: new Date().toISOString().split('T')[0], tradeTime: new Date().toTimeString().slice(0,5), riskAmount: '', rr: '', outcome: 'win', accountId: '', imageUrl: '', imageUrlOptional: '', reasoning: '', mood: null });
+        }
+        setFeedback('');
+        setOptionalImageFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+
+    }, [tradeToEdit, show]); 
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+    
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (file && ADMIN_DATA_OWNER_ID) { 
+            setOptionalImageFile(file);
+            setUploading(true);
+            setFeedback('Afbeelding uploaden...');
+            const filePath = `artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/tradeImages/${Date.now()}_${file.name}`;
+            const storageRefInstance = ref(storage, filePath);
+            const uploadTask = uploadBytesResumable(storageRefInstance, file);
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setFeedback(`Uploaden: ${Math.round(progress)}%`);
+                }, 
+                (error) => {
+                    console.error("Upload fout:", error);
+                    setFeedback("Fout bij uploaden afbeelding.");
+                    setUploading(false);
+                    setOptionalImageFile(null);
+                    if(fileInputRef.current) fileInputRef.current.value = "";
+                }, 
+                () => {
+                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                        setFormData(prev => ({...prev, imageUrlOptional: downloadURL}));
+                        setFeedback('Afbeelding succesvol geüpload!');
+                        setUploading(false);
+                    });
+                }
+            );
+        } else {
+            setFeedback("Fout: Admin rechten vereist voor file upload.");
+        }
+    };
+
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setFeedback('');
+        if (!tradeToEdit || !tradeToEdit.id) {
+            setFeedback("Fout: Geen trade geselecteerd om te bewerken.");
+            return;
+        }
+
+        const updatedTradeData = {
+            date: Timestamp.fromDate(new Date(`${formData.date}T${formData.tradeTime || '00:00'}`)),
+            reasoning: formData.reasoning,
+            imageUrl: formData.imageUrl,
+            imageUrlOptional: formData.imageUrlOptional, 
+            updatedAt: serverTimestamp()
+        };
+        
+        try {
+            await onUpdateTrade(tradeToEdit.id, updatedTradeData);
+            setFeedback("Trade succesvol bijgewerkt!");
+            setTimeout(() => {
+                setFeedback('');
+                onClose();
+            }, 1500);
+        } catch (error) {
+            console.error("Fout bij bijwerken trade:", error);
+            setFeedback(`Fout bij bijwerken trade: ${error.message}`);
+        }
+    };
+    
+    if (!show) return null;
+
+    const inputClass = `w-full p-3 rounded-md ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors`;
+    const labelClass = `block text-sm font-medium mb-1 ${themeColors.subtleText}`;
+    const readOnlyTextClass = `${themeColors.subtleText} italic`;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto`}>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className={`text-xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Trade Bewerken</h3>
+                    <button onClick={onClose} className={`p-1 rounded-md hover:${themeColors.inputBg} ${themeColors.subtleText}`}>
+                        <X size={22}/>
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Read-only fields */}
+                    <div><label className={labelClass}>Handelspaar:</label><p className={readOnlyTextClass}>{formData.pair}</p></div>
+                    <div><label className={labelClass}>Account:</label><p className={readOnlyTextClass}>{accounts.find(acc => acc.id === formData.accountId)?.name || 'N/B'}</p></div>
+                    <div><label className={labelClass}>Risico:</label><p className={readOnlyTextClass}>${formData.riskAmount}</p></div>
+                    <div><label className={labelClass}>RR:</label><p className={readOnlyTextClass}>{formData.rr}</p></div>
+                    <div><label className={labelClass}>Uitkomst:</label><p className={readOnlyTextClass}>{formData.outcome === 'win' ? 'Winst' : 'Verlies'}</p></div>
+                    <div><label className={labelClass}>Stemming:</label> <MoodSmiley moodValue={formData.mood} themeColors={themeColors} /></div>
+
+                    {/* Editable fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label htmlFor="edit-date" className={labelClass}>Datum</label><input type="date" id="edit-date" name="date" value={formData.date || ''} onChange={handleChange} className={inputClass} required /></div>
+                        <div><label htmlFor="edit-tradeTime" className={labelClass}>Tijd</label><input type="time" id="edit-tradeTime" name="tradeTime" value={formData.tradeTime || ''} onChange={handleChange} className={inputClass} /></div>
+                    </div>
+                    <div><label htmlFor="edit-imageUrl" className={labelClass}>Image URL (TradingView)</label><input type="url" id="edit-imageUrl" name="imageUrl" value={formData.imageUrl || ''} onChange={handleChange} className={inputClass} placeholder="https://www.tradingview.com/chart/..." /></div>
+                    <div>
+                        <label htmlFor="edit-imageUrlOptionalFile" className={labelClass}>Optionele Afbeelding (Order Bewijs)</label>
+                        <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${themeColors.borderColor} border-dashed rounded-md`}>
+                            <div className="space-y-1 text-center">
+                                <UploadCloud className={`mx-auto h-12 w-12 ${themeColors.subtleText}`} />
+                                <div className="flex text-sm text-gray-600">
+                                    <label htmlFor="edit-imageUrlOptionalFile" className={`relative cursor-pointer ${themeColors.cardBg} rounded-md font-medium ${themeColors.primaryAccent} hover:text-opacity-80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500`}>
+                                        <span>Upload een nieuw bestand</span>
+                                        <input id="edit-imageUrlOptionalFile" name="imageUrlOptionalFile" type="file" className="sr-only" accept="image/*" onChange={handleFileChange} ref={fileInputRef} />
+                                    </label>
+                                </div>
+                                <p className={`text-xs ${themeColors.subtleText}`}>PNG, JPG, GIF tot 10MB</p>
+                                {formData.imageUrlOptional && !optionalImageFile && <p className={`text-xs ${themeColors.primaryAccent} mt-1`}>Huidige: <a href={formData.imageUrlOptional} target="_blank" rel="noopener noreferrer" className="underline">Bekijk</a></p>}
+                                {optionalImageFile && !uploading && <p className={`text-xs ${themeColors.primaryAccent} mt-1`}>Nieuw: {optionalImageFile.name}</p>}
+                                {uploading && <p className={`text-xs ${themeColors.primaryAccent} mt-1 animate-pulse`}>{feedback || 'Uploaden...'}</p>}
+                            </div>
+                        </div>
+                    </div>
+                    <div><label htmlFor="edit-reasoning" className={labelClass}>Onderbouwing</label><textarea id="edit-reasoning" name="reasoning" rows="3" value={formData.reasoning || ''} onChange={handleChange} className={inputClass} placeholder="Denkgedachte, analyse..."></textarea></div>
+                    
+                    <div className="flex justify-end space-x-3 pt-4">
+                        <button type="button" onClick={onClose} className={`px-4 py-2 text-sm rounded-md ${themeColors.inputBg} ${themeColors.inputText} hover:opacity-80 transition-opacity`}>
+                            Annuleren
+                        </button>
+                        <button type="submit" disabled={uploading} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors disabled:opacity-50`}>
+                            {uploading ? 'Bezig...' : 'Wijzigingen Opslaan'}
+                        </button>
+                    </div>
+                    {feedback && !uploading && <p className={`mt-4 text-sm ${feedback.includes("succesvol") ? themeColors.primaryAccent : 'text-red-500'}`}>{feedback}</p>}
+                </form>
+            </div>
+        </div>
+    );
+};
+
 const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors, onNavigateToTimeline, onNavigateToContact, userId, isAdmin, onAdminLogout, navigateTo }) => {
     const [kpiValues, setKpiValues] = useState({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 });
     const [accounts, setAccounts] = useState([]);
@@ -1145,19 +1312,18 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
     };
 
     const handleUpdateTrade = async (tradeId, updatedData) => {
-        if (!tradeId || !ADMIN_DATA_OWNER_ID) {
+        if (!tradeId || !ADMIN_DATA_OWNER_ID) { // Check if ADMIN_DATA_OWNER_ID is correct for this path
             console.error("Trade ID of Admin Data Owner ID ontbreekt voor update.");
-            return;
+            throw new Error("Trade ID of Admin Data Owner ID ontbreekt voor update.");
         }
         const tradeDocRef = doc(db, `/artifacts/${appId}/users/${ADMIN_DATA_OWNER_ID}/trades`, tradeId);
         try {
             await updateDoc(tradeDocRef, updatedData);
             console.log("Trade succesvol bijgewerkt in Firestore");
-            // Optioneel: refresh de trades list of update lokaal
-            // Voor nu, de onSnapshot listener zou dit moeten afhandelen.
+            // De onSnapshot listener zou de lijst automatisch moeten bijwerken.
         } catch (error) {
             console.error("Fout bij het bijwerken van de trade:", error);
-            throw error; // Gooi de error door zodat de modal het kan afhandelen
+            throw error; 
         }
     };
 
@@ -1195,9 +1361,9 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
     }, [dataFetchingUserId]);
 
     useEffect(() => {
-        const dataOwnerIdForTrades = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
+        const dataOwnerIdForTrades = ADMIN_DATA_OWNER_ID; // Publiek dashboard toont altijd admin trades
 
-        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 || isAdmin)) {
+        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 )) {
             setTradesLoading(true);
             const tradesPath = `/artifacts/${appId}/users/${dataOwnerIdForTrades}/trades`;
             const tradesQuery = query(collection(db, tradesPath), orderBy("date", "asc"));
@@ -1277,7 +1443,7 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
             setKpiValues({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 });
             setTradesLoading(false);
         }
-    }, [accounts, selectedAccountFilterId, isAdmin, userId]);
+    }, [accounts, selectedAccountFilterId, isAdmin, userId]); // isAdmin en userId zijn hier om de hook opnieuw te triggeren als de admin-status verandert
 
     useEffect(() => { if (!isAdmin && activeMainTab === 'admin') { setActiveMainTab('overview'); } }, [isAdmin, activeMainTab]);
 
@@ -1365,8 +1531,22 @@ const App = () => {
 
   const navigateTo = (view) => {
     console.log("Navigating to:", view); 
-    setCurrentView(view);
-    window.scrollTo(0,0); 
+    const pageContainer = document.getElementById('page-container');
+    if (pageContainer) {
+      pageContainer.style.opacity = '0'; 
+      setTimeout(() => {
+        setCurrentView(view);
+        window.scrollTo(0, 0);
+        const innerContainer = document.querySelector('.journey-container, .flex-grow.overflow-y-auto');
+        if(innerContainer) innerContainer.scrollTop = 0;
+        setTimeout(() => { 
+            if (pageContainer) pageContainer.style.opacity = '1'; 
+        }, 50); 
+      }, 250); 
+    } else {
+      setCurrentView(view);
+      window.scrollTo(0,0);
+    }
   };
 
   useEffect(() => {
