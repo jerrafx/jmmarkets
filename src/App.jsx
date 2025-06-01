@@ -298,7 +298,10 @@ const MyJourneyTimelinePage = ({ onBackToHome, onNavigateToDashboard, onNavigate
         <div className="container mx-auto max-w-4xl p-4 md:p-8 relative z-10">
           <div className="text-center mb-10 md:mb-16">
             <img src={jeremyImageUrl} alt="Jeremy Mlynarczyk - JMarkets.nl" className="mx-auto mb-6 rounded-full w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover border-4 border-blue-500 shadow-xl" onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/200x200/${themeColors.cardBg.substring(3)}/${themeColors.text.substring(5)}?text=JM`;}} />
-            <h2 className={`text-2xl sm:text-3xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>
+            <h2 
+                className={`text-3xl sm:text-4xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'} transition-all duration-300 ease-in-out hover:tracking-wider`}
+                style={{ textShadow: theme === 'dark' ? `0 0 10px ${themeColors.primaryAccent.replace('text-','').replace('-400','').replace('-600','')}66` : `0 0 10px ${themeColors.primaryAccent.replace('text-','').replace('-400','').replace('-600','')}44` }}
+            >
                 <span className={themeColors.primaryAccent}>J</span>eremy <span className={themeColors.primaryAccent}>M</span>łynarczyk
             </h2>
             <p className={`text-base sm:text-lg ${themeColors.subtleText} mt-2`}>Een chronologisch overzicht van mijn ontwikkeling en de oprichting van JMarkets.nl.</p>
@@ -1083,11 +1086,12 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         }, 100);
     };
     
-    const dataFetchingUserId = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
+    // Data voor het dashboard (overview en admin) wordt altijd van ADMIN_DATA_OWNER_ID gehaald.
+    const dataOwnerForDashboard = ADMIN_DATA_OWNER_ID;
 
     useEffect(() => {
-        if (dataFetchingUserId) {
-            const accountsPath = `/artifacts/${appId}/users/${dataFetchingUserId}/accounts`;
+        if (dataOwnerForDashboard) {
+            const accountsPath = `/artifacts/${appId}/users/${dataOwnerForDashboard}/accounts`;
             const q = query(collection(db, accountsPath), orderBy("createdAt", "desc"));
             const unsubAccounts = onSnapshot(q, (snap) => {
                 const fetchedAccounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1100,12 +1104,12 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
         } else {
             setAccounts([]);
         }
-    }, [dataFetchingUserId]);
+    }, [dataOwnerForDashboard]); // Luister naar dataOwnerForDashboard (zal niet veranderen)
 
     useEffect(() => {
-        const dataOwnerIdForTrades = isAdmin ? ADMIN_DATA_OWNER_ID : userId;
+        const dataOwnerIdForTrades = ADMIN_DATA_OWNER_ID; // Trades altijd van admin voor dashboard
 
-        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 || isAdmin)) {
+        if (dataOwnerIdForTrades && (selectedAccountFilterId === 'cumulative' || accounts.length > 0 )) {
             setTradesLoading(true);
             const tradesPath = `/artifacts/${appId}/users/${dataOwnerIdForTrades}/trades`;
             const tradesQuery = query(collection(db, tradesPath), orderBy("date", "asc"));
@@ -1185,7 +1189,7 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
             setKpiValues({ totalPL: 0, winRate: 0, avgRRR: 0, totalTrades: 0, evPerTrade: 0, maxDrawdown: 0, avgDrawdown: 0, avgDaysBetweenTrades: 0 });
             setTradesLoading(false);
         }
-    }, [accounts, selectedAccountFilterId, isAdmin, userId]);
+    }, [accounts, selectedAccountFilterId, isAdmin, userId]); // isAdmin en userId zijn hier om de hook opnieuw te triggeren als de admin-status verandert
 
     useEffect(() => { if (!isAdmin && activeMainTab === 'admin') { setActiveMainTab('overview'); } }, [isAdmin, activeMainTab]);
 
@@ -1212,7 +1216,7 @@ const App = () => {
   const [currentView, setCurrentView] = useState('landing');
   const [currentUser, setCurrentUser] = useState(null); 
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('light'); // Standaard thema is light
   const [isAdmin, setIsAdmin] = useState(false); 
   const currentThemeColors = themes[theme];
 
