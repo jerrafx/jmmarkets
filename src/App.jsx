@@ -164,7 +164,7 @@ const LandingPage = ({ onNavigateToDashboard, onNavigateToTimeline, onNavigateTo
         <div className="flex flex-col items-center space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-xs sm:max-w-xl md:max-w-2xl">
                 <button onClick={onNavigateToTimeline} className={`bg-transparent border-2 ${themeColors.primaryAccent.replace('text-','border-')} hover:${themeColors.primaryAccentBg} ${themeColors.primaryAccent} hover:text-white font-semibold py-3 px-6 rounded-lg text-base sm:text-lg transition-colors duration-300 inline-flex items-center justify-center`}> <User size={20} className="mr-2 sm:mr-3" /> Mijn Reis </button>
-                <button onClick={onNavigateToDashboard} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-4 px-8 md:py-5 md:px-10 rounded-lg text-lg sm:text-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out inline-flex items-center justify-center`}> <Eye size={22} className="mr-2 sm:mr-3" /> Neem een kijkje </button>
+                <button onClick={onNavigateToDashboard} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentBg} text-white font-semibold py-4 px-8 md:py-5 md:px-10 rounded-lg text-lg sm:text-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out inline-flex items-center justify-center`}> <Eye size={22} className="mr-2 sm:mr-3" /> Neem een kijkje </button>
                 <button onClick={onNavigateToContact} className={`bg-transparent border-2 ${themeColors.primaryAccent.replace('text-','border-')} hover:${themeColors.primaryAccentBg} ${themeColors.primaryAccent} hover:text-white font-semibold py-3 px-6 rounded-lg text-base sm:text-lg transition-colors duration-300 inline-flex items-center justify-center`}> <Send size={20} className="mr-2 sm:mr-3" /> Contact </button>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full max-w-xs sm:max-w-xl md:max-w-2xl">
@@ -1225,6 +1225,8 @@ const App = () => {
                     const profileData = userDocSnap.data();
                     setTheme(profileData?.themePreference || 'light');
                 } else { 
+                    // THE_ADMIN_UID is hier nog steeds relevant om te voorkomen dat er een standaardprofiel voor wordt aangemaakt,
+                    // als die UID toevallig overeenkomt met een anonieme gebruiker die nog geen profiel heeft.
                     if (user.uid !== THE_ADMIN_UID) { 
                         await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Gebruiker', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: false });
                         setTheme('light'); 
