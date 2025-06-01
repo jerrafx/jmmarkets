@@ -9,8 +9,7 @@ import { setLogLevel } from 'firebase/app';
 // Admin PIN en de ID waaronder admin data wordt opgeslagen/gelezen in Firestore
 const THE_ADMIN_PIN = "86878"; // Hardgecodeerde PIN
 const ADMIN_DATA_OWNER_ID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; // Vaste ID voor admin data opslag
-// THE_ADMIN_UID wordt nog steeds gebruikt in onAuthStateChanged om te checken of een via Firebase ingelogde gebruiker de admin is.
-const THE_ADMIN_UID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; 
+const THE_ADMIN_UID = "XtGudx6G6PMUwPJS3yLXOzPujeM2"; // Voor fallback check in onAuthStateChanged
 
 // Firebase Configuratie
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -299,7 +298,10 @@ const MyJourneyTimelinePage = ({ onBackToHome, onNavigateToDashboard, onNavigate
         <div className="container mx-auto max-w-4xl p-4 md:p-8 relative z-10">
           <div className="text-center mb-10 md:mb-16">
             <img src={jeremyImageUrl} alt="Jeremy Mlynarczyk - JMarkets.nl" className="mx-auto mb-6 rounded-full w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover border-4 border-blue-500 shadow-xl" onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/200x200/${themeColors.cardBg.substring(3)}/${themeColors.text.substring(5)}?text=JM`;}} />
-            <p className={`text-base sm:text-lg ${themeColors.subtleText}`}>Een chronologisch overzicht van mijn ontwikkeling en de oprichting van JMarkets.nl.</p>
+            <h2 className={`text-2xl sm:text-3xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>
+                <span className={themeColors.primaryAccent}>J</span>eremy <span className={themeColors.primaryAccent}>M</span>łynarczyk
+            </h2>
+            <p className={`text-base sm:text-lg ${themeColors.subtleText} mt-2`}>Een chronologisch overzicht van mijn ontwikkeling en de oprichting van JMarkets.nl.</p>
           </div>
           <div className="relative"> {timelineData.map((event, index) => ( <TimelineEvent key={event.year + '-' + index} {...event} themeColors={themeColors} isLast={index === timelineData.length - 1} index={index} /> ))} </div>
           <div className="text-center mt-10 md:mt-16 pb-10"> <button onClick={onBackToHome} className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out`}> Terug naar Home </button> </div>
@@ -437,6 +439,28 @@ const Footer = memo(({themeColors}) => {
                 <p> www.jmarkets.nl - Jeremy Młynarczyk - Alle rechten voorbehouden</p>
             </div>
         </footer>
+    );
+});
+
+const MoodSmiley = memo(({ moodValue, themeColors, size = 18 }) => {
+    const moodConfig = [
+        { icon: Frown, color: themeColors.mood[0], label: moodLabels[1] },
+        { icon: Frown, color: themeColors.mood[1], label: moodLabels[2] },
+        { icon: Meh, color: themeColors.mood[2], label: moodLabels[3] },
+        { icon: Smile, color: themeColors.mood[3], label: moodLabels[4] },
+        { icon: Smile, color: themeColors.mood[4], label: moodLabels[5] }
+    ];
+    const currentMood = moodValue && moodValue >=1 && moodValue <=5 ? moodConfig[moodValue - 1] : null;
+
+    if (!currentMood) {
+        return <span className={`text-xs ${themeColors.subtleText}`}>Kies stemming</span>;
+    }
+    const IconComponent = currentMood.icon;
+
+    return (
+        <div className="flex items-center" title={`Stemming: ${currentMood.label}`}>
+            <IconComponent className={`${currentMood.color}`} size={size} />
+        </div>
     );
 });
 
@@ -1193,25 +1217,14 @@ const App = () => {
   const currentThemeColors = themes[theme];
 
   const navigateTo = (view) => {
-    const pageContainer = document.getElementById('page-container');
-    if (pageContainer) {
-      pageContainer.style.opacity = '0';
-      setTimeout(() => {
-        setCurrentView(view);
-        window.scrollTo(0, 0);
-        const innerContainer = document.querySelector('.journey-container, .flex-grow.overflow-y-auto');
-        if(innerContainer) innerContainer.scrollTop = 0;
-        setTimeout(() => { pageContainer.style.opacity = '1'; }, 50);
-      }, 250);
-    } else {
-      setCurrentView(view);
-      window.scrollTo(0,0);
-    }
+    console.log("Navigating to:", view); 
+    setCurrentView(view);
+    window.scrollTo(0,0); 
   };
 
   useEffect(() => {
     const authListener = onAuthStateChanged(auth, async (user) => {
-      console.log("Auth state changed, Firebase user:", user);
+      console.log("Auth state changed, Firebase user:", user, "isAdmin state:", isAdmin, "currentUser state:", currentUser);
       if (user) {
         if (!(isAdmin && currentUser?.isPseudoAdmin && currentUser.uid === ADMIN_DATA_OWNER_ID)) {
             setCurrentUser(user);
@@ -1225,8 +1238,6 @@ const App = () => {
                     const profileData = userDocSnap.data();
                     setTheme(profileData?.themePreference || 'light');
                 } else { 
-                    // THE_ADMIN_UID is hier nog steeds relevant om te voorkomen dat er een standaardprofiel voor wordt aangemaakt,
-                    // als die UID toevallig overeenkomt met een anonieme gebruiker die nog geen profiel heeft.
                     if (user.uid !== THE_ADMIN_UID) { 
                         await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Gebruiker', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: false });
                         setTheme('light'); 
@@ -1264,7 +1275,7 @@ const App = () => {
     }
 
     return () => authListener();
-  }, [isAdmin, currentUser?.isPseudoAdmin]); 
+  }, [isAdmin]); 
 
   const toggleTheme = async () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
