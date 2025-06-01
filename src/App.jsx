@@ -58,7 +58,7 @@ const moodLabels = {
 };
 
 
-// --- Componenten ---
+// --- Componenten (Definities vóór gebruik) ---
 
 const RandomQuotesBackground = memo(({ count = 3, themeColors }) => { 
   const [randomQuotes, setRandomQuotes] = useState([]);
@@ -334,25 +334,109 @@ const ContactPage = ({ onBackToHome, onNavigateToDashboard, theme, toggleTheme, 
 
   return ( <div className={`min-h-screen ${themeColors.bg} ${themeColors.text} font-inter`}> <PageHeader title="Neem Contact Op" onNavigateToDashboard={onNavigateToDashboard} onToggleTheme={toggleTheme} currentTheme={theme} themeColors={themeColors} showHomeButton={true} onNavigateToHome={onBackToHome} /> <div className="flex flex-col justify-center items-center p-4 md:p-8"> <div className={`w-full max-w-3xl ${themeColors.cardBg} p-6 sm:p-8 md:p-12 rounded-xl shadow-2xl`}> <div className="grid md:grid-cols-2 gap-x-8 sm:gap-x-12 gap-y-8 mb-8 sm:mb-10"> <div> <h2 className={`text-lg sm:text-xl font-semibold mb-3 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Contactinformatie</h2> <ul className="space-y-2 sm:space-y-3 text-sm sm:text-base"> <li className="flex items-center"><Mail size={18} sm:size={20} className={`${themeColors.primaryAccent} mr-2 sm:mr-3`}/> info@jmarkets.nl</li> <li className="flex items-center"><Phone size={18} sm:size={20} className={`${themeColors.primaryAccent} mr-2 sm:mr-3`}/> +31 6 13797726</li> <li className="flex items-center"><MapPin size={18} sm:size={20} className={`${themeColors.primaryAccent} mr-2 sm:mr-3`}/> Nederland, Groningen, Opsplitting 19 Stadskanaal</li> </ul> </div> <div> <h2 className={`text-lg sm:text-xl font-semibold mb-3 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Plan een Gesprek</h2> <p className={`${themeColors.cardText} mb-3 text-sm sm:text-base`}>Interesse in een persoonlijke kennismaking? Plan direct een gratis 30-minuten gesprek.</p> <a href="https://calendly.com/jeremy-mlynarczyk/30min" target="_blank" rel="noopener noreferrer" className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-2 px-4 sm:py-3 sm:px-6 rounded-lg inline-flex items-center text-sm sm:text-md transition-colors`}> <CalendarDays size={18} sm:size={20} className="mr-2"/> Plan een Call </a> </div> </div> {isSubmitted ? ( <div className={`text-center p-3 sm:p-4 rounded-md ${themeColors.primaryAccentBg.replace('bg-','bg-opacity-20')} ${themeColors.primaryAccent} text-sm sm:text-base`}> {feedbackMessage} </div> ) : ( <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 border-t ${themeColors.borderColor} pt-6 sm:pt-8"> <h2 className={`text-lg sm:text-xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Stuur een Bericht</h2> <div> <label htmlFor="name" className={labelClass}>Naam</label> <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} className={inputClass} placeholder="Uw naam" required /> </div> <div> <label htmlFor="email" className={labelClass}>Email</label> <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className={inputClass} placeholder="uw@email.com" required /> </div> <div> <label htmlFor="message" className={labelClass}>Bericht</label> <textarea name="message" id="message" rows="3" className={inputClass} placeholder="Uw bericht..." required value={formData.message} onChange={handleChange}></textarea> </div> <button type="submit" className={`${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-base sm:text-lg transition-colors`}> Verstuur Bericht </button> </form> )} <button onClick={onBackToHome} className={`mt-6 sm:mt-8 w-full bg-transparent border-2 ${themeColors.primaryAccent.replace('text-','border-')} hover:${themeColors.primaryAccentBg} ${themeColors.primaryAccent} hover:text-white font-semibold py-3 px-6 rounded-lg text-base sm:text-lg transition-colors`}> Terug naar Home </button> </div> </div> </div> );};
 
-const MoodSmiley = memo(({ moodValue, themeColors, size = 18 }) => {
-    const moodConfig = [
-        { icon: Frown, color: themeColors.mood[0], label: moodLabels[1] },
-        { icon: Frown, color: themeColors.mood[1], label: moodLabels[2] },
-        { icon: Meh, color: themeColors.mood[2], label: moodLabels[3] },
-        { icon: Smile, color: themeColors.mood[3], label: moodLabels[4] },
-        { icon: Smile, color: themeColors.mood[4], label: moodLabels[5] }
-    ];
-    const currentMood = moodValue && moodValue >=1 && moodValue <=5 ? moodConfig[moodValue - 1] : null;
+const AdminLoginPage = ({ onSuccessfulAdminLogin, onBackToLanding, themeColors }) => {
+  const [pin, setPin] = useState(Array(5).fill(''));
+  const [error, setError] = useState('');
+  const inputRefs = useRef([]);
 
-    if (!currentMood) {
-        return <span className={`text-xs ${themeColors.subtleText}`}>Kies stemming</span>;
+  const handleChange = (e, index) => {
+    const { value } = e.target;
+    if (/^[0-9]$/.test(value) || value === "") {
+      const newPin = [...pin];
+      newPin[index] = value;
+      setPin(newPin);
+      if (value && index < 4) {
+        inputRefs.current[index + 1]?.focus();
+      }
     }
-    const IconComponent = currentMood.icon;
+  };
 
-    return (
-        <div className="flex items-center" title={`Stemming: ${currentMood.label}`}>
-            <IconComponent className={`${currentMood.color}`} size={size} />
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    const enteredPin = pin.join('');
+    if (enteredPin === THE_ADMIN_PIN) {
+      onSuccessfulAdminLogin();
+    } else {
+      setError('Ongeldige pincode.');
+      setPin(Array(5).fill(''));
+      if (inputRefs.current[0]) inputRefs.current[0].focus();
+    }
+  };
+
+  const inputClass = `w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl sm:text-3xl font-semibold rounded-lg ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-colors mx-1`;
+  const labelClass = `block text-sm font-medium mb-2 ${themeColors.subtleText}`;
+
+  return (
+    <div className={`min-h-screen ${themeColors.bg} ${themeColors.text} flex flex-col justify-center items-center p-8 font-inter`}>
+      <div className={`w-full max-w-md ${themeColors.cardBg} p-8 md:p-10 rounded-xl shadow-2xl`}>
+        <div className="text-center mb-8">
+          <Key size={48} className={`${themeColors.primaryAccent} mx-auto mb-4`} />
+          <h1 className={`text-3xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Admin Pincode</h1>
         </div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label htmlFor="pin-0" className={labelClass}>Voer uw 5-cijferige pincode in:</label>
+            <div className="flex justify-center space-x-2">
+              {pin.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`pin-${index}`}
+                  type="password" // Mask PIN input
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => handleChange(e, index)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                  ref={el => inputRefs.current[index] = el}
+                  className={inputClass}
+                  autoComplete="new-password" // Prevent browser autofill for PINs
+                />
+              ))}
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+          <button type="submit" className={`${themeColors.adminButtonBg} hover:${themeColors.adminButtonHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors`}>
+            Inloggen
+          </button>
+        </form>
+        <button onClick={onBackToLanding} className={`mt-6 w-full bg-transparent border-2 ${themeColors.borderColor} hover:${themeColors.inputBg} ${themeColors.subtleText} font-semibold py-3 px-6 rounded-lg text-lg transition-colors`}>
+          Terug naar Home
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const FloatingCallButton = memo(({ themeColors }) => {
+  const handleCallClick = () => {
+    window.open('https://calendly.com/jeremy-mlynarczyk/30min', '_blank');
+  };
+
+  return (
+    <button
+      onClick={handleCallClick}
+      title="Plan een Call"
+      className={`fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 rounded-full ${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-200 ease-in-out`}
+    >
+      <Phone size={20} sm:size={22} />
+    </button>
+  );
+});
+
+const Footer = memo(({themeColors}) => {
+    return (
+        <footer className={`py-4 text-center ${themeColors.footerText} opacity-75 text-xs sm:text-sm`}>
+            <div className="container mx-auto px-6 flex items-center justify-center">
+                <Copyright size={14} sm:size={16} className="mr-1.5"/>
+                <p> www.jmarkets.nl - Jeremy Młynarczyk - Alle rechten voorbehouden</p>
+            </div>
+        </footer>
     );
 });
 
@@ -1099,112 +1183,6 @@ const DashboardView = ({ onBackToLanding, currentTheme, toggleTheme, themeColors
 
     return ( <div className={`min-h-screen font-inter ${themeColors.bg} ${themeColors.text}`}> <DashboardNavbar onToggleTheme={toggleTheme} currentTheme={currentTheme} themeColors={themeColors} onNavigateToTimeline={onNavigateToTimeline} onNavigateToContact={onNavigateToContact} isAdmin={isAdmin} onAdminLogout={onAdminLogout} onTabChange={setActiveMainTab} activeTab={activeMainTab} onNavigateToLanding={() => navigateTo('landing')} /> <main className="p-4 sm:p-6 md:p-8 space-y-8"> {activeMainTab === 'overview' && ( <section id="dashboard-overview"> <h2 className={`text-2xl sm:text-3xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Dashboard Overzicht</h2> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> <div className="mb-6 flex flex-wrap gap-2 items-center"> <span className={`mr-2 text-sm ${themeColors.subtleText}`}>Toon data voor:</span> <button onClick={() => setSelectedAccountFilterId('cumulative')} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === 'cumulative' ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> Cumulatief </button> {accounts.map(acc => ( <button key={acc.id} onClick={() => setSelectedAccountFilterId(acc.id)} className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${selectedAccountFilterId === acc.id ? `${themeColors.filterButtonActiveBg} ${themeColors.filterButtonActiveText}` : `${themeColors.filterButtonInactiveBg} ${themeColors.filterButtonInactiveText} hover:opacity-80`}`}> {acc.name} </button> ))} </div> <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"> {kpiData.map(kpi => <KPI_Card key={kpi.title} {...kpi} themeColors={themeColors} />)} </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg`}> <h3 className={`text-xl font-semibold mb-1 ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Equity Curve</h3> <em className={`text-xs ${themeColors.subtleText} opacity-75 block mb-4`}>Visuele weergave van de vermogensgroei.</em> <div className={`h-[450px] md:h-[550px] flex items-center justify-center rounded-md ${themeColors.text === 'text-slate-200' ? 'border-opacity-30' : 'border-opacity-50'}`}> {tradesLoading ? ( <p className={`${themeColors.subtleText}`}>Equity curve data laden...</p> ) : ( <SimpleEquityChart data={equityCurveData} themeColors={themeColors} /> )} </div> </div> <div className={`${themeColors.cardBg} p-6 rounded-xl shadow-lg mt-8`}> <div className="flex border-b ${themeColors.borderColor} mb-4 overflow-x-auto pb-px"> {analyticsTabs.map(tab => { const IconComponent = tab.icon; return ( <button key={tab.id} onClick={() => setActiveAnalyticsTab(tab.id)} className={`flex-shrink-0 flex items-center py-3 px-3 sm:px-4 -mb-px font-medium text-xs sm:text-sm focus:outline-none transition-colors duration-200 ${activeAnalyticsTab === tab.id ? `border-b-2 ${themeColors.primaryAccent.replace('text-','border-')} ${themeColors.primaryAccent}` : `${themeColors.subtleText} hover:${themeColors.text}` }`}> {IconComponent && <IconComponent className="mr-1 sm:mr-2" size={16} sm:size={18}/>} {tab.label} </button> ); })} </div> <div> {activeAnalyticsTab === 'monthlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>8% - 14%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'yearlyGrowth' && ( <div> <h4 className={`text-xl sm:text-2xl font-semibold ${themeColors.textPositive}`}>96% - 168%</h4> <p className={`text-xs italic ${themeColors.subtleText} mt-1`}>Resultaten gebaseerd op de afgelopen 500 trades, en alleen geldig bij 1% risico per trade.</p> </div> )} {activeAnalyticsTab === 'nerdStats' && ( <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm"> <div><span className={`${themeColors.cardText} font-medium`}>Risk to Ruin %:</span> <span className={themeColors.subtleText}>0% (Gebaseerd op 500 trades)</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Expected Value (EV) / Trade:</span> <span className={kpiValues.evPerTrade >= 0 ? themeColors.textPositive : themeColors.textNegative}>{kpiValues.evPerTrade.toLocaleString('nl-NL', {style: 'currency', currency: 'USD'})}</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Max Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.maxDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gemiddelde Drawdown % (per trade):</span> <span className={themeColors.textNegative}>{kpiValues.avgDrawdown.toFixed(2)}%</span></div> <div><span className={`${themeColors.cardText} font-medium`}>Gem. Dagen Tussen Trades:</span> <span className={themeColors.subtleText}>{kpiValues.avgDaysBetweenTrades.toFixed(1)}</span></div> </div> )} </div> </div> <div ref={tradesSectionRef}> <TradeList trades={allTrades} accounts={accounts} themeColors={themeColors} selectedAccountFilterId={selectedAccountFilterId} /> </div> <UserAccountStatusList themeColors={themeColors} allTrades={allTrades} onSelectAccountTrades={handleSelectAccountTrades} /> </section> )} {isAdmin && activeMainTab === 'admin' && ( <section id="admin-panel" className="mt-2 space-y-8"> <h2 className={`text-2xl sm:text-3xl font-semibold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Administrator Paneel</h2> <AdminTradeInputForm themeColors={themeColors} userId={ADMIN_DATA_OWNER_ID} accounts={accounts} /> <AdminAccountManagement themeColors={themeColors} userId={ADMIN_DATA_OWNER_ID} onAccountAdded={handleAccountAdded} accounts={accounts} setAccounts={setAccounts} /> </section> )} <button onClick={onBackToLanding} className={`mt-8 ${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out self-center`}> Terug naar Home </button> </main> </div> );};
 
-const AdminLoginPage = ({ onSuccessfulAdminLogin, onBackToLanding, themeColors }) => {
-  const [pin, setPin] = useState(Array(5).fill(''));
-  const [error, setError] = useState('');
-  const inputRefs = useRef([]);
-
-  const handleChange = (e, index) => {
-    const { value } = e.target;
-    if (/^[0-9]$/.test(value) || value === "") {
-      const newPin = [...pin];
-      newPin[index] = value;
-      setPin(newPin);
-      if (value && index < 4) {
-        inputRefs.current[index + 1]?.focus();
-      }
-    }
-  };
-
-  const handleKeyDown = (e, index) => {
-    if (e.key === 'Backspace' && !pin[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    const enteredPin = pin.join('');
-    if (enteredPin === THE_ADMIN_PIN) {
-      onSuccessfulAdminLogin();
-    } else {
-      setError('Ongeldige pincode.');
-      setPin(Array(5).fill(''));
-      if (inputRefs.current[0]) inputRefs.current[0].focus();
-    }
-  };
-
-  const inputClass = `w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl sm:text-3xl font-semibold rounded-lg ${themeColors.inputBg} ${themeColors.inputText} ${themeColors.borderColor} border focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-colors mx-1`;
-  const labelClass = `block text-sm font-medium mb-2 ${themeColors.subtleText}`;
-
-  return (
-    <div className={`min-h-screen ${themeColors.bg} ${themeColors.text} flex flex-col justify-center items-center p-8 font-inter`}>
-      <div className={`w-full max-w-md ${themeColors.cardBg} p-8 md:p-10 rounded-xl shadow-2xl`}>
-        <div className="text-center mb-8">
-          <Key size={48} className={`${themeColors.primaryAccent} mx-auto mb-4`} />
-          <h1 className={`text-3xl font-bold ${themeColors.text === 'text-slate-200' ? 'text-white' : 'text-slate-900'}`}>Admin Pincode</h1>
-        </div>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label htmlFor="pin-0" className={labelClass}>Voer uw 5-cijferige pincode in:</label>
-            <div className="flex justify-center space-x-2">
-              {pin.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`pin-${index}`}
-                  type="password" // Mask PIN input
-                  maxLength="1"
-                  value={digit}
-                  onChange={(e) => handleChange(e, index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                  ref={el => inputRefs.current[index] = el}
-                  className={inputClass}
-                  autoComplete="new-password" // Prevent browser autofill for PINs
-                />
-              ))}
-            </div>
-          </div>
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-          <button type="submit" className={`${themeColors.adminButtonBg} hover:${themeColors.adminButtonHoverBg} text-white font-semibold py-3 px-6 rounded-lg w-full text-lg transition-colors`}>
-            Inloggen
-          </button>
-        </form>
-        <button onClick={onBackToLanding} className={`mt-6 w-full bg-transparent border-2 ${themeColors.borderColor} hover:${themeColors.inputBg} ${themeColors.subtleText} font-semibold py-3 px-6 rounded-lg text-lg transition-colors`}>
-          Terug naar Home
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const FloatingCallButton = memo(({ themeColors }) => {
-  const handleCallClick = () => {
-    window.open('https://calendly.com/jeremy-mlynarczyk/30min', '_blank');
-  };
-
-  return (
-    <button
-      onClick={handleCallClick}
-      title="Plan een Call"
-      className={`fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 rounded-full ${themeColors.primaryAccentBg} hover:${themeColors.primaryAccentHoverBg} text-white shadow-xl flex items-center justify-center transform hover:scale-110 transition-all duration-200 ease-in-out`}
-    >
-      <Phone size={20} sm:size={22} />
-    </button>
-  );
-});
-
-const Footer = memo(({themeColors}) => {
-    return (
-        <footer className={`py-4 text-center ${themeColors.footerText} opacity-75 text-xs sm:text-sm`}>
-            <div className="container mx-auto px-6 flex items-center justify-center">
-                <Copyright size={14} sm:size={16} className="mr-1.5"/>
-                <p> www.jmarkets.nl - Jeremy Młynarczyk - Alle rechten voorbehouden</p>
-            </div>
-        </footer>
-    );
-});
-
 // Main App Component
 const App = () => {
   const [currentView, setCurrentView] = useState('landing');
@@ -1247,8 +1225,10 @@ const App = () => {
                     const profileData = userDocSnap.data();
                     setTheme(profileData?.themePreference || 'light');
                 } else { 
-                     await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Gebruiker', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: false });
-                    setTheme('light');
+                    if (user.uid !== THE_ADMIN_UID) { 
+                        await setDoc(userDocRef, { email: user.email || 'anoniem', name: user.displayName || 'Gebruiker', createdAt: Timestamp.now(), themePreference: 'light', isAdmin: false });
+                        setTheme('light'); 
+                    }
                 }
             } catch (error) {
                 console.error("Fout bij ophalen/aanmaken gebruikersprofiel:", error);
@@ -1270,8 +1250,7 @@ const App = () => {
         try {
           await signInWithCustomToken(auth, __initial_auth_token);
         } catch (error) {
-          console.error("Custom token inloggen mislukt, probeer anoniem:", error);
-          signInAnonymously(auth).catch(anonError => console.error("Anoniem inloggen ook mislukt na custom token fail:", anonError));
+          signInAnonymously(auth).catch(anonError => console.error("Anoniem inloggen mislukt na custom token fail:", anonError));
         }
       }
     };
@@ -1283,7 +1262,7 @@ const App = () => {
     }
 
     return () => authListener();
-  }, [isAdmin, currentUser?.isPseudoAdmin]); // Added currentUser.isPseudoAdmin to dependencies
+  }, [isAdmin, currentUser?.isPseudoAdmin]); 
 
   const toggleTheme = async () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -1314,7 +1293,7 @@ const App = () => {
         const adminProfileSnap = await getDoc(adminProfileRef);
         if (adminProfileSnap.exists()) {
             setTheme(adminProfileSnap.data()?.themePreference || 'light');
-        } else {
+        } else { 
             await setDoc(adminProfileRef, { themePreference: 'light', name: "Admin Data Storage" }, { merge: true });
             setTheme('light');
         }
@@ -1331,10 +1310,15 @@ const App = () => {
     
     if (auth.currentUser && auth.currentUser.uid !== ADMIN_DATA_OWNER_ID) {
         const userDocRef = doc(db, `/artifacts/${appId}/users/${auth.currentUser.uid}/profile`, 'info');
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            setTheme(userDocSnap.data()?.themePreference || 'light');
-        } else {
+        try {
+             const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                setTheme(userDocSnap.data()?.themePreference || 'light');
+            } else {
+                setTheme('light'); 
+            }
+        } catch(error) {
+            console.error("Fout bij herladen gebruikersthema na admin logout:", error);
             setTheme('light');
         }
     } else if (!auth.currentUser) { 
